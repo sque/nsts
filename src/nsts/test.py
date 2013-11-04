@@ -100,9 +100,9 @@ class IperfTestBase(NetTest):
     
     def execute_iperf(self, extra_args):
         args = [self.iperf_executable]
-        logger.debug("Executing iperf - {0}.".format(args))
         args.extend(extra_args)
-        self.iperf_process = proc.Popen(args)
+        logger.debug("Executing iperf - {0}.".format(args))
+        self.iperf_process = proc.Popen(args, stdout = proc.PIPE)
     
     def is_iperf_running(self):
         if self.iperf_process is None:
@@ -118,7 +118,15 @@ class IperfTestBase(NetTest):
         
         self.iperf_process.kill()
         self.iperf_process = None
-
+        
+    def get_iperf_output(self):
+        if self.iperf_process is None:
+            return False
+        
+        print "getting output"
+        (output, _) = self.iperf_executable.communicate()
+        return output
+        
 class IperfTCPSend(IperfTestBase):
     
     def __init__(self):
@@ -137,13 +145,13 @@ class IperfTCPSend(IperfTestBase):
         return True
     
     def start_client(self):
-        self.execute_iperf(["-c", self.remote_ip])
+        self.execute_iperf(["-t", "1", "-c", self.remote_ip])
     
     def stop_server(self):
         self.kill_iperf()
     
     def stop_client(self):
-        return True
+        print "FINISHED ", type(self.get_iperf_output())
     
     def is_running(self):
         return self.is_iperf_running()

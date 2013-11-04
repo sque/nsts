@@ -128,7 +128,7 @@ class MessageStream(object):
             raise ProtocolError("Waiting for '{0}' message, but '{1}' arrived".format(msg.type_, expected_type))
         return msg
     
-    def send_msg(self, msg_type, msg_params = []):
+    def send_msg(self, msg_type, msg_params = {}):
         '''
         Send a message to the other end.
         '''
@@ -136,13 +136,13 @@ class MessageStream(object):
         self.connection.send(msg.encode() + MessageStream.MSG_DELIMITER)
         
         
-class NTSTConnectionBase(MessageStream):
+class NSTSConnectionBase(MessageStream):
     '''
     Implement NSTS connection base
     '''
     
     def __init__(self, connection):
-        super(NTSTConnectionBase, self).__init__(connection)
+        super(NSTSConnectionBase, self).__init__(connection)
         self.remote_ip = None
         self.local_ip = None
         
@@ -168,10 +168,10 @@ class NTSTConnectionBase(MessageStream):
             raise ProtocolError("Test {0} is not supported on the other side".format(test_info.error))
         
     
-class NTSTConnectionClient(NTSTConnectionBase):
+class NSTSConnectionClient(NSTSConnectionBase):
     
     def __init__(self, connection):
-        super(NTSTConnectionClient, self).__init__(connection)
+        super(NSTSConnectionClient, self).__init__(connection)
     
     def run_test(self, test):
         """
@@ -215,10 +215,10 @@ class NTSTConnectionClient(NTSTConnectionBase):
         
         return test.get_results()
 
-class NTSTConnectionServer(NTSTConnectionBase):
+class NSTSConnectionServer(NSTSConnectionBase):
     
     def __init__(self, connection):
-        super(NTSTConnectionServer, self).__init__(connection)
+        super(NSTSConnectionServer, self).__init__(connection)
     
     def checktest(self, tests, name):
         installed = tests.has_key(name)
@@ -298,7 +298,7 @@ class Server(object):
             (socket_conn, socket_addr) = self.server_socket.accept()
             print 'Server: got connection from client ' + socket_addr[0] + ':' + str(socket_addr[1])
             try:
-                connection = NTSTConnectionServer(socket_conn)
+                connection = NSTSConnectionServer(socket_conn)
                 connection.handshake(socket_addr[0])
                 connection.process_client_requets(self.tests)
             except (ConnectionClosedException, socket.error), msg:
@@ -325,7 +325,7 @@ class Client(object):
         
         addr = socket.getaddrinfo(self.remote_host, 0)
         remote_ip = addr[0][4][0]
-        self.connection = NTSTConnectionClient(self.socket)
+        self.connection = NSTSConnectionClient(self.socket)
         self.connection.handshake(remote_ip)
         
             
