@@ -78,7 +78,7 @@ class MessageStream(object):
         if end_msg_pos == -1:
             return None # No line in buffer
         
-        # Extract line
+        # Extract message
         raw_msg = self.receiver_buffer[:end_msg_pos]
         
         # Remove it from buffer
@@ -123,8 +123,8 @@ class MessageStream(object):
         msg = self.wait_msg()
         
         if msg.type_ != expected_type:
-            logger.debug("Waiting for '{0}' message, but '{1}' arrived".format(msg.type_, expected_type))
-            raise ProtocolError("Waiting for '{0}' message, but '{1}' arrived".format(msg.type_, expected_type))
+            logger.debug("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type_))
+            raise ProtocolError("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type_))
         return msg
     
     def send_msg(self, msg_type, msg_params = {}):

@@ -5,7 +5,8 @@ Created on Nov 4, 2013
 '''
 
 import socket, sys, logging
-import test as test_mod, proto
+from nsts import  proto
+from nsts.tests import base
 
 logger = logging.getLogger("proto")
 
@@ -28,22 +29,29 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
     def serve_run_test(self, test):
         logger.info("Client request for executing test {0}.".format(test.friendly_name))
         executor = test.server_executor
-        assert isinstance(executor, test_mod.TestExecutor)
+        assert isinstance(executor, base.TestExecutor)
         
-        # PREPAR
-        executor.initialize(self)
-        logger.debug("Preparing test '{0}'.".format(test.name))
-        executor.prepare()
-        self.send_msg("OK")
-        
-        # RUN
-        logger.debug("Test '{0} started'.".format(test.name))
-        executor.run()
+        # PREPARE
+        try:
+            executor.initialize(self)
+            logger.debug("Preparing test '{0}'.".format(test.name))
+            executor.prepare()
+            self.send_msg("OK")
             
-        # STOP
-        logger.debug("Test '{0}' finished.".format(test.name))
-        self.send_msg("TESTFINISHED", {"name", test.name})
-        self.wait_msg_type("TESTFINISHED")
+            # RUN
+            logger.debug("Test '{0} started'.".format(test.name))
+            executor.run()
+                
+            # STOP
+            logger.debug("Test '{0}' finished.".format(test.name))
+            self.send_msg("TESTFINISHED", {"name", test.name})
+            self.wait_msg_type("TESTFINISHED")
+            
+            results = executor.get_results()
+        except:
+            executor.cleanup()
+            raise
+        return results
         
     def process_client_requets(self, tests):
         
@@ -60,7 +68,7 @@ class NSTSServer(object):
     def __init__(self, host = None , port = None):
         self.host = '' if host is None else host
         self.port = 26532 if port is None else port
-        self.tests = test_mod.get_enabled_tests()
+        self.tests = base.get_enabled_tests()
 
     def serve(self):
         ''' Start the server and start serving

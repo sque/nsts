@@ -5,7 +5,8 @@ Created on Nov 4, 2013
 '''
 
 import socket, sys, logging
-import proto, test as test_mod
+import proto
+from nsts.tests import base
 
 logger = logging.getLogger("proto")
 
@@ -25,28 +26,36 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
         logger.debug("Checking test '{0}'".format(test.name))
         self.assure_test(test.name)
         
-        # PREPAR
         executor = test.client_executor
-        assert isinstance(executor, test_mod.TestExecutor)
+        assert isinstance(executor, base.TestExecutor)
         
-        # PREPAR
-        executor.initialize(self)
-        logger.debug("Preparing test '{0}'.".format(test.name))
-        self.send_msg("PREPARETEST", {"name" : test.name})
-        self.wait_msg_type("OK")
-        executor.prepare()
-        
-        
-        # RUN
-        logger.debug("Test '{0} started'.".format(test.name))
-        executor.run()
+        # PREPARE
+        try:
+            executor.initialize(self)
+            logger.debug("Preparing test '{0}'.".format(test.name))
+            self.send_msg("PREPARETEST", {"name" : test.name})
+            self.wait_msg_type("OK")
+            executor.prepare()
             
-        # STOP
-        logger.debug("Test '{0}' finished.".format(test.name))
-        self.send_msg("TESTFINISHED", {"name", test.name})
-        self.wait_msg_type("TESTFINISHED")
+            
+            # RUN
+            logger.debug("Test '{0} started'.".format(test.name))
+            executor.run()
+                
+            # STOP
+            logger.debug("Test '{0}' finished.".format(test.name))
+            self.send_msg("TESTFINISHED", {"name": test.name})
+            self.wait_msg_type("TESTFINISHED")
+            
+            results = executor.get_results()
+        except:
+            executor.cleanup()
+            raise
         
-        return executor.get_results()
+        #CLEAN UP
+        executor.cleanup()
+        
+        return results
     
 class NSTSClient(object):
     
@@ -54,7 +63,7 @@ class NSTSClient(object):
         self.remote_host = remote_host
         self.remote_port = 26532 if remote_port is None else remote_port
         self.connection = None
-        self.tests = test_mod.get_enabled_tests()
+        self.tests = base.get_enabled_tests()
         
     def connect(self):
         '''

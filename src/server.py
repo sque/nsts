@@ -5,6 +5,8 @@ Created on Nov 2, 2013
 '''
 
 from nsts.server import NSTSServer
+from nsts.tests import *
+
 import logging
 
 logging.basicConfig(level = logging.DEBUG)
