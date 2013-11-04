@@ -16,6 +16,9 @@ class TestExecutor(object):
     '''
     
     def __init__(self, owner):
+        '''
+        @param owner The owner Test of this executor
+        '''
         assert isinstance(owner, Test)
         self.owner = owner
         self.connection = None
@@ -24,7 +27,9 @@ class TestExecutor(object):
         
     def initialize(self, connection):
         '''
-        Called by the nsts system to initialize executor
+        Called by the NSTS system to initialize executor
+        @param connection The NSTSConnectionBase object that
+        can be used to communicate with the other executor.
         '''
         self.connection = connection
         assert isinstance(self.connection, proto.NSTSConnectionBase)
@@ -58,15 +63,31 @@ class TestExecutor(object):
         self.results = results_msg.params['results']
         
     def is_supported(self):
+        '''
+        The executor should check if it supported
+        by the current system and return a boolean flag.
+        '''
         raise NotImplementedError()
     
     def prepare(self):
+        '''
+        Prepare executor for running the test
+        '''
         raise NotImplementedError()
     
     def run(self):
+        '''
+        Implemented by executor and involves all the testing
+        procedure. It is up to the executor to synchronize
+        and controll the running loop of the other-end executor.
+        '''
         raise NotImplementedError()
     
     def cleanup(self):
+        '''
+        Called when test is stopped or crashed. The executor
+        should do any needed cleanup
+        '''
         raise NotImplementedError()
     
     def get_results(self):

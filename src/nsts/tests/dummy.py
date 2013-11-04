@@ -13,6 +13,9 @@ class DummyTestServer(base.TestExecutor):
     def __init__(self, owner):
         super(DummyTestServer, self).__init__(owner)
         
+    def is_supported(self):
+        return True
+    
     def prepare(self):
         return True
     
@@ -29,6 +32,9 @@ class DummyTestClient(base.TestExecutor):
     def __init__(self, owner):
         super(DummyTestClient, self).__init__(owner)
         
+    def is_supported(self):
+        return True
+    
     def prepare(self):
         return True
     
@@ -41,9 +47,7 @@ class DummyTestClient(base.TestExecutor):
 class DummyTest(base.Test):
     def __init__(self):
         super(DummyTest, self).__init__("dummy", "Dummy Test", DummyTestClient, DummyTestServer)
-        
-    def is_supported(self):
-        return True
+
     
 
 base.enable_test(DummyTest)

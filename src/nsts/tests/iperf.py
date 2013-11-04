@@ -19,6 +19,9 @@ class IperfExecutorBase(base.TestExecutor):
         args.extend(extra_args)
         self.logger.debug("Executing iperf - {0}.".format(args))
         self.iperf_process = proc.Popen(args, stdout = proc.PIPE)
+        
+    def is_supported(self):
+        return self.iperf_executable is not None
     
     def is_iperf_running(self):
         if self.iperf_process is None:
@@ -92,19 +95,12 @@ class IperfTCPSend(base.Test):
     
     def __init__(self):
         super(IperfTCPSend, self).__init__("iperf_tcp_send", "TCP send (iperf)", IperfExecutorClient, IperfExecutorServer)
-    
-    def is_supported(self):
-        base.logger.warning("Fix this....")
-        return True
+
 
 class IperfTCPReceive(base.Test):
     
     def __init__(self):
         super(IperfTCPReceive, self).__init__("iperf_tcp_receive", "TCP receive (iperf)", IperfExecutorServer, IperfExecutorClient)
-    
-    def is_supported(self):
-        base.logger.warning("Fix this....")
-        return True
     
 base.enable_test(IperfTCPSend)
 base.enable_test(IperfTCPReceive)

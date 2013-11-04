@@ -24,9 +24,12 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
 
         # ASSURE
         logger.debug("Checking test '{0}'".format(test.name))
-        self.assure_test(test.name)
-        
         executor = test.client_executor
+        self.assure_test(test.name)
+        if not executor.is_supported():
+            logger.info("Test '{0}' is not supported.".format(test.name))
+            raise proto.ProtocolError("Test {0} is not supported locally".format(test.name))
+        
         assert isinstance(executor, base.TestExecutor)
         
         # PREPARE

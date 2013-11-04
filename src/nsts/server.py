@@ -19,15 +19,16 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
         installed = tests.has_key(name)
         supported = False
         if installed:
-            supported = tests[name].is_supported()
+            supported = tests[name].server_executor.is_supported()
         self.send_msg("TESTINFO",{
                     "name" : name,
                     "installed" : installed,
                     "supported" : supported,
+                    "error" : "unknown"
                     })
 
     def serve_run_test(self, test):
-        logger.info("Client request for executing test {0}.".format(test.friendly_name))
+        logger.info("Client requested execution of test {0}.".format(test.friendly_name))
         executor = test.server_executor
         assert isinstance(executor, base.TestExecutor)
         
@@ -83,11 +84,13 @@ class NSTSServer(object):
             print 'Bind failed. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
             sys.exit()
         self.server_socket.listen(1)
+        logger.info("Server started listening at port {0}".format(self.port))
+        print "Server started listening at port {0}".format(self.port)
         # Get new connections loop
         while(True):
             print "Waiting for new connection..."
             (socket_conn, socket_addr) = self.server_socket.accept()
-            print 'Server: got connection from client ' + socket_addr[0] + ':' + str(socket_addr[1])
+            print 'Got connection from client ' + socket_addr[0] + ':' + str(socket_addr[1])
             try:
                 connection = NSTSConnectionServer(socket_conn)
                 connection.handshake(socket_addr[0])
