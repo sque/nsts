@@ -4,10 +4,10 @@ Created on Nov 2, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
-from nsts.proto import Server
+from nsts.server import NSTSServer
 import logging
 
 logging.basicConfig(level = logging.DEBUG)
 
-s = Server()
+s = NSTSServer()
 s.serve()

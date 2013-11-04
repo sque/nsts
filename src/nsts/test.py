@@ -4,94 +4,111 @@ Created on Nov 2, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
-import subprocess as proc, logging
-import utils
+import subprocess as proc, logging, random
+import utils, proto
 
 # Module logger
 logger = logging.getLogger("test")
 
-class NetTest(object):
+class TestExecutor(object):
+    '''
+    Base class for implementing a peer executor
+    '''
     
-    def __init__(self, name, friendly_name):
-        self.name = name
-        self.friendly_name = friendly_name
-        self.options = {}
+    def __init__(self, owner):
+        assert isinstance(owner, Test)
+        self.owner = owner
+        self.connection = None
+        self.logger = logging.getLogger("test.{0}".format(self.owner.name))
         
-    def initialize(self, local_ip, remote_ip):
-        self.local_ip = local_ip
-        self.remote_ip = remote_ip
-
+    def initialize(self, connection):
+        '''
+        Called by the nsts system to initialize executor
+        '''
+        self.connection = connection
+        assert isinstance(self.connection, proto.NSTSConnectionBase)
+    
+    def send_msg(self, msg_type, msg_params = {}):
+        '''
+        Wrapper for sending messages in the way that protocol
+        defines inter-test communication.
+        '''
+        return self.connection.send_msg("__{0}_{1}".format(self.owner.name, msg_type), msg_params)
+    
+    def wait_msg_type(self, expected_type):
+        '''
+        Wrapper for receiving messages in the way that protocol
+        defines inter-test communication.
+        '''
+        return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.name, expected_type))
+    
     def is_supported(self):
-        raise NotImplementedError("Test.is_supported")
+        raise NotImplementedError()
     
-    def prepare_server(self):
-        raise NotImplementedError("Test.prepare_server")
+    def prepare(self):
+        raise NotImplementedError()
     
-    def prepare_client(self):
-        raise NotImplementedError("Test.prepare_client")
-    
-    def start_server(self):
-        raise NotImplementedError("Test.start_server")
-    
-    def start_client(self):
-        raise NotImplementedError("Test.start_client")
-    
-    def stop_server(self):
-        raise NotImplementedError("Test.stop_server")
-    
-    def stop_client(self):
-        raise NotImplementedError("Test.stop_client")
-    
-    def is_running(self):
-        raise NotImplementedError("Test.start_client")
-    
-    def get_output(self):
-        raise NotImplementedError("Test.get_output")
-    
-    def push_output(self, output):
-        raise NotImplementedError("Test.push_output")
+    def run(self):
+        raise NotImplementedError()
     
     def get_results(self):
-        raise NotImplementedError("Test.get_results")
+        raise NotImplementedError()
 
-class DummyTest(NetTest):
-    def __init__(self):
-        super(DummyTest, self).__init__("dummy", "Dummy Test ")
+class Test(object):
+    '''
+    Base class for implementing a test
+    '''
+    def __init__(self, name, friendly_name, client_executor, server_executor):
+        self.name = name
+        self.friendly_name = friendly_name
         
-    def is_supported(self):
+        assert issubclass(client_executor, TestExecutor)
+        assert issubclass(server_executor, TestExecutor)
+        self.client_executor = client_executor(self)
+        self.server_executor = server_executor(self)
+
+    def initialize(self, local_ip, remote_ip):
+        pass
+
+class DummyTestServer(TestExecutor):
+    
+    def __init__(self, owner):
+        super(DummyTestServer, self).__init__(owner)
+        
+    def prepare(self):
         return True
     
-    def prepare_server(self):
-        return True
-    
-    def prepare_client(self):
-        return True
-    
-    def start_server(self):
-        return True
-    
-    def start_client(self):
-        return True
-    
-    def stop_server(self):
-        return True
-    
-    def stop_client(self):
-        return True
-    
-    def is_running(self):
-        return False
-    
-    def get_output(self):
-        return "DummyDummy --RES--123--RES DUMMY"
-    
-    def push_output(self, output):
-        self.results = 123
+    def run(self):
+        self.results = random.random()
+        self.logger.debug("Results are generated. sending them to client.")
+        self.send_msg("RESULTS", {"results" : self.results})
     
     def get_results(self):
         return self.results
 
-class IperfTestBase(NetTest):
+class DummyTestClient(TestExecutor):
+    
+    def __init__(self, owner):
+        super(DummyTestClient, self).__init__(owner)
+        
+    def prepare(self):
+        return True
+    
+    def run(self):
+        msg_results = self.wait_msg_type("RESULTS")
+        self.results = msg_results.params['results']
+    
+    def get_results(self):
+        return self.results
+
+class DummyTest(Test):
+    def __init__(self):
+        super(DummyTest, self).__init__("dummy", "Dummy Test", DummyTestClient, DummyTestServer)
+        
+    def is_supported(self):
+        return True
+
+class IperfTestBase(Test):
 
     def __init__(self, name, friendly_name):
         super(IperfTestBase, self).__init__(name, friendly_name)
@@ -166,7 +183,7 @@ class IperfTCPSend(IperfTestBase):
         return self.results
     
 # A list with all enabled tests
-__enabled_tests = [IperfTCPSend, DummyTest]
+__enabled_tests = [DummyTest]
 
 
 def get_enabled_tests():

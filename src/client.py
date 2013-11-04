@@ -4,12 +4,12 @@ Created on Nov 2, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
-from nsts.proto import Client
+from nsts.client import NSTSClient
 import logging
 
 logging.basicConfig(level = logging.DEBUG)
 
 
-c = Client("localhost")
+c = NSTSClient("localhost")
 c.connect()
-print "Finished", c.run_test("iperf")
+print "Finished", c.run_test("dummy")
