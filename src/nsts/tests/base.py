@@ -4,8 +4,8 @@ Created on Nov 2, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
-import subprocess as proc, logging
-from nsts import utils, proto
+import logging, datetime, hashlib, random
+from nsts import proto
 
 # Module logger
 logger = logging.getLogger("test")
@@ -97,6 +97,7 @@ class TestExecutor(object):
         ''' 
         
         return self.results
+
 class Test(object):
     '''
     Base class for implementing a test
@@ -113,7 +114,32 @@ class Test(object):
     def initialize(self, local_ip, remote_ip):
         pass
 
+class TestResults(object):
+    '''
+    Wrapper class to hold test results
+    '''
     
+    def __init__(self, test):
+        self.test = test
+        assert isinstance(self.test, Test)
+        
+        self.started_at = datetime.datetime.utcnow()
+        self.ended_at = None
+        self.results = None
+        
+        sha1 = hashlib.sha1()
+        sha1.update( test.name + str(self.started_at) + str(random.random()))
+        self.test_execution_id = sha1.hexdigest()
+    
+    def mark_test_finished(self, results):
+        '''
+        Fill end timestamp and save results in the object
+        '''
+        self.ended_at = datetime.datetime.utcnow()
+        self.results = results
+    
+    def get_total_seconds(self):
+        return (self.ended_at - self.started_at).total_seconds()
 # A list with all enabled tests
 __enabled_tests = []
 
@@ -136,3 +162,11 @@ def get_enabled_tests():
         tests[test.name] = test
         
     return tests
+
+def is_test_enabled(test):
+    '''
+    Check if test is enabled
+    '''
+    tests = get_enabled_tests()
+    
+    return test in tests.keys()

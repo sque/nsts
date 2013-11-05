@@ -4,7 +4,7 @@ Created on Nov 4, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
-import socket, sys, logging
+import socket, sys, logging, time
 import proto
 from nsts.tests import base
 
@@ -34,14 +34,15 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
         
         # PREPARE
         try:
+            
             executor.initialize(self)
             logger.debug("Preparing test '{0}'.".format(test.name))
             self.send_msg("PREPARETEST", {"name" : test.name})
             self.wait_msg_type("OK")
             executor.prepare()
             
-            
             # RUN
+            results = base.TestResults(test)
             logger.debug("Test '{0} started'.".format(test.name))
             executor.run()
                 
@@ -50,7 +51,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
             self.send_msg("TESTFINISHED", {"name": test.name})
             self.wait_msg_type("TESTFINISHED")
             
-            results = executor.get_results()
+            results.mark_test_finished(executor.get_results())
         except:
             executor.cleanup()
             raise
@@ -86,5 +87,21 @@ class NSTSClient(object):
         
             
     def run_test(self, test_name):
+        '''
+        Run a test and return results
+        '''
         return self.connection.run_test(self.tests[test_name])
+    
+    
+    def multirun_test(self, test_name, times, interval_secs = None):
+        '''
+        Run a test multiple times between intervals and return results
+        '''
+        results = []
         
+        for i in range(0, times):
+            result = self.run_test(test_name)
+            results.append(result)
+            if i < times -1 and interval_secs is not None:
+                time.sleep(interval_secs)
+        return results
