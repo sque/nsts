@@ -7,7 +7,7 @@ import subprocess as proc, time
 import base
 from nsts import utils
 
-class IperfExecutorBase(base.TestExecutor):
+class IperfExecutorBase(base.SpeedTestExecutor):
 
     def __init__(self, owner):
         super(IperfExecutorBase, self).__init__(owner)
@@ -91,13 +91,13 @@ class IperfExecutorServer(IperfExecutorBase):
         self.collect_results()
 
 
-class IperfTCPSend(base.Test):
+class IperfTCPSend(base.SpeedTest):
     
     def __init__(self):
         super(IperfTCPSend, self).__init__("iperf_tcp_send", "TCP send (iperf)", IperfExecutorClient, IperfExecutorServer)
 
 
-class IperfTCPReceive(base.Test):
+class IperfTCPReceive(base.SpeedTest):
     
     def __init__(self):
         super(IperfTCPReceive, self).__init__("iperf_tcp_receive", "TCP receive (iperf)", IperfExecutorServer, IperfExecutorClient)

@@ -6,7 +6,7 @@ Created on Nov 4, 2013
 
 import socket, sys, logging, time
 import proto
-from nsts.tests import base
+from nsts.speedtests import base
 
 logger = logging.getLogger("proto")
 
@@ -30,7 +30,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
             logger.info("Test '{0}' is not supported.".format(test.name))
             raise proto.ProtocolError("Test {0} is not supported locally".format(test.name))
         
-        assert isinstance(executor, base.TestExecutor)
+        assert isinstance(executor, base.SpeedTestExecutor)
         
         # PREPARE
         try:
@@ -42,7 +42,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
             executor.prepare()
             
             # RUN
-            results = base.TestResults(test)
+            results = base.SpeedTestResults(test)
             logger.debug("Test '{0} started'.".format(test.name))
             executor.run()
                 

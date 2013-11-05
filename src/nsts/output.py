@@ -3,7 +3,7 @@ Created on Nov 4, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
-from nsts.tests.base import TestResults
+from nsts.speedtests.base import SpeedTestResults
 from nsts import core
 import numpy as np
 
@@ -30,7 +30,7 @@ def basic_formating(result_set):
         print "{0}".format(test_name)
         print "-------------------------------------"
         for i,result in enumerate(results):
-            assert isinstance(result, TestResults)
+            assert isinstance(result, SpeedTestResults)
             print "{0} |  {1} {2} {3}".format(i + 1, result.started_at, result.get_total_seconds(), result.results)
     
     

@@ -10,16 +10,16 @@ from nsts import proto
 # Module logger
 logger = logging.getLogger("test")
 
-class TestExecutor(object):
+class SpeedTestExecutor(object):
     '''
     Base class for implementing a peer executor
     '''
     
     def __init__(self, owner):
         '''
-        @param owner The owner Test of this executor
+        @param owner The owner SpeedTest of this executor
         '''
-        assert isinstance(owner, Test)
+        assert isinstance(owner, SpeedTest)
         self.owner = owner
         self.connection = None
         self.logger = logging.getLogger("test.{0}".format(self.owner.name))
@@ -98,7 +98,7 @@ class TestExecutor(object):
         
         return self.results
 
-class Test(object):
+class SpeedTest(object):
     '''
     Base class for implementing a test
     '''
@@ -106,22 +106,22 @@ class Test(object):
         self.name = name
         self.friendly_name = friendly_name
         
-        assert issubclass(client_executor, TestExecutor)
-        assert issubclass(server_executor, TestExecutor)
+        assert issubclass(client_executor, SpeedTestExecutor)
+        assert issubclass(server_executor, SpeedTestExecutor)
         self.client_executor = client_executor(self)
         self.server_executor = server_executor(self)
 
     def initialize(self, local_ip, remote_ip):
         pass
 
-class TestResults(object):
+class SpeedTestResults(object):
     '''
     Wrapper class to hold test results
     '''
     
     def __init__(self, test):
         self.test = test
-        assert isinstance(self.test, Test)
+        assert isinstance(self.test, SpeedTest)
         
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
@@ -140,8 +140,9 @@ class TestResults(object):
     
     def get_total_seconds(self):
         return (self.ended_at - self.started_at).total_seconds()
+
 # A list with all enabled tests
-__enabled_tests = []
+__enabled_tests = {}
 
 def enable_test(test_class):
     '''
@@ -149,19 +150,16 @@ def enable_test(test_class):
     '''
     global __enabled_tests
     if test_class not in __enabled_tests:
-        __enabled_tests.append(test_class)
+        test = test_class()
+        __enabled_tests[test.name] = test
 
 def get_enabled_tests():
     '''
     Get a dictionary with instances of all enabled
     tests
     '''
-    tests = {}
-    for test_class in __enabled_tests:
-        test = test_class()
-        tests[test.name] = test
-        
-    return tests
+    return __enabled_tests
+
 
 def is_test_enabled(test):
     '''

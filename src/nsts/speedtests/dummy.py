@@ -5,10 +5,10 @@ Created on Nov 4, 2013
 '''
 
 import random
-from nsts.tests import base
+import base
 
 
-class DummyTestServer(base.TestExecutor):
+class DummyTestServer(base.SpeedTestExecutor):
     
     def __init__(self, owner):
         super(DummyTestServer, self).__init__(owner)
@@ -27,7 +27,7 @@ class DummyTestServer(base.TestExecutor):
     def cleanup(self):
         pass
     
-class DummyTestClient(base.TestExecutor):
+class DummyTestClient(base.SpeedTestExecutor):
     
     def __init__(self, owner):
         super(DummyTestClient, self).__init__(owner)
@@ -44,9 +44,9 @@ class DummyTestClient(base.TestExecutor):
     def cleanup(self):
         return True
     
-class DummyTest(base.Test):
+class DummyTest(base.SpeedTest):
     def __init__(self):
-        super(DummyTest, self).__init__("dummy", "Dummy Test", DummyTestClient, DummyTestServer)
+        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestClient, DummyTestServer)
 
     
 

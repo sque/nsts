@@ -8,12 +8,12 @@ Created on Nov 2, 2013
 import logging, argparse, sys
 from nsts.client import NSTSClient
 from nsts.server import NSTSServer
-from nsts.tests import *
+from nsts.speedtests import *
 from nsts import output
 
 parser = argparse.ArgumentParser(
         epilog="This application was developed for the need of "
-        "benchmarking wireless links at herakleion wireless metropolitan network (hwmn.org).")
+        "benchmarking wireless links at heraklion wireless metropolitan network (hwmn.org).")
 group = parser.add_mutually_exclusive_group(required = True)
 group.add_argument("-c", "--connect", help="connect to server.", type=str)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")

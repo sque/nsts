@@ -6,7 +6,7 @@ Created on Nov 4, 2013
 
 import socket, sys, logging
 from nsts import  proto
-from nsts.tests import base
+from nsts.speedtests import base
 
 logger = logging.getLogger("proto")
 
@@ -30,7 +30,7 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
     def serve_run_test(self, test):
         logger.info("Client requested execution of test {0}.".format(test.friendly_name))
         executor = test.server_executor
-        assert isinstance(executor, base.TestExecutor)
+        assert isinstance(executor, base.SpeedTestExecutor)
         
         # PREPARE
         try:
