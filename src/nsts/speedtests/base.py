@@ -11,6 +11,12 @@ from nsts.units import TimeUnit
 # Module logger
 logger = logging.getLogger("test")
 
+class SpeedTestRuntimeError(RuntimeError):
+    '''
+    Exception to be raised by test when
+    it was unable to execute it.
+    '''
+    
 class SpeedTestExecutor(object):
     '''
     Base class for implementing a peer executor

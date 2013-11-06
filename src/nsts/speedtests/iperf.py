@@ -3,56 +3,16 @@ Created on Nov 4, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
-import subprocess as proc, time
+import time
 import base
 from nsts import utils, units
+from subprocess import SubProcessExecutorBase
 
-class IperfExecutorBase(base.SpeedTestExecutor):
-
-    def __init__(self, owner):
-        super(IperfExecutorBase, self).__init__(owner)
-        self.iperf_executable = utils.which('iperf')
-        self.iperf_process = None
-    
-    def execute_iperf(self, *extra_args):
-        args = [self.iperf_executable]
-        args.extend(extra_args)
-        self.logger.debug("Executing iperf - {0}.".format(args))
-        self.iperf_process = proc.Popen(args, stdout = proc.PIPE)
         
-    def is_supported(self):
-        return self.iperf_executable is not None
-    
-    def is_iperf_running(self):
-        if self.iperf_process is None:
-            return False
-        
-        self.iperf_process.poll()
-        return self.iperf_process.returncode is None
-    
-    def kill_iperf(self):
-        self.logger.debug("Request to kill iperf")
-        if not self.is_iperf_running():
-            return False
-        
-        self.iperf_process.kill()
-        self.iperf_process = None
-        
-    def get_iperf_output(self):
-        if self.iperf_process is None:
-            return False
-
-        (output, _) = self.iperf_process.communicate()
-        return output
-
-    def cleanup(self):
-        self.kill_iperf()
-        self.iperf_process = None
-        
-class IperfExecutorClient(IperfExecutorBase):
+class IperfExecutorClient(SubProcessExecutorBase):
     
     def __init__(self, owner):
-        super(IperfExecutorClient, self).__init__(owner)
+        super(IperfExecutorClient, self).__init__(owner, 'iperf')
         self.server_arguments = ["-s"]
         self.client_arguments = ["-t" "5", "-y", "C"]
         
@@ -60,15 +20,15 @@ class IperfExecutorClient(IperfExecutorBase):
         return True
     
     def parse_and_store_output(self):
-        output = self.get_iperf_output()
+        output = self.get_subprocess_output()
         self.store_result('transfer_rate', units.BitRateUnit(float(output.split(',')[8])))
         
     def run(self):
         self.send_msg("STARTSERVER",  self.server_arguments)
         self.wait_msg_type('OK')
-        self.execute_iperf("-c", self.connection.remote_ip, *self.client_arguments)
+        self.execute_subprocess("-c", self.connection.remote_ip, *self.client_arguments)
         
-        while self.is_iperf_running():
+        while self.is_subprocess_running():
             time.sleep(0.2)
             
         self.logger.debug("iperf stopped running.")
@@ -78,16 +38,37 @@ class IperfExecutorClient(IperfExecutorBase):
         # Parse output
         self.parse_and_store_output()
         self.propagate_results()
+
+class IperfExecutorServer(SubProcessExecutorBase):
     
+    def __init__(self, owner):
+        super(IperfExecutorServer, self).__init__(owner, 'iperf')
+        
+    def prepare(self):
+        return True
+    
+    def run(self):
+        msg = self.wait_msg_type("STARTSERVER")
+        self.execute_subprocess(*msg.params)
+        time.sleep(0.2)
+        self.send_msg("OK")
+
+        self.wait_msg_type("STOPSERVER")
+        self.kill_subprocess()
+        self.send_msg("OK")
+        
+        # Collect __results
+        self.collect_results()
+
 class IperfJitterExecutorClient(IperfExecutorClient):
     
     def __init__(self, owner):
-        super(IperfExecutorClient, self).__init__(owner)
+        super(IperfJitterExecutorClient, self).__init__(owner)
         self.server_arguments = ["-s", "-u"]
         self.client_arguments = ["-u", "-t" "5", "-y", "C"]
         
     def parse_and_store_output(self):
-        output = self.get_iperf_output().split("\n")
+        output = self.get_subprocess_output().split("\n")
         
         sent = output[0].split(',')
         received = output[1].split(',')
@@ -98,26 +79,7 @@ class IperfJitterExecutorClient(IperfExecutorClient):
         self.store_result('percentage_lost', units.PercentageUnit(float(received[12])))
     
         
-class IperfExecutorServer(IperfExecutorBase):
-    
-    def __init__(self, owner):
-        super(IperfExecutorServer, self).__init__(owner)
-        
-    def prepare(self):
-        return True
-    
-    def run(self):
-        msg = self.wait_msg_type("STARTSERVER")
-        self.execute_iperf(*msg.params)
-        time.sleep(0.2)
-        self.send_msg("OK")
 
-        self.wait_msg_type("STOPSERVER")
-        self.kill_iperf()
-        self.send_msg("OK")
-        
-        # Collect __results
-        self.collect_results()
 
 
 class IperfTCPSend(base.SpeedTest):
