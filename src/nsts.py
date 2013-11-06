@@ -9,11 +9,13 @@ import logging, argparse, sys
 from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.speedtests import *
-from nsts import output
+from nsts.io import formatters
 
 parser = argparse.ArgumentParser(
         epilog="This application was developed for the need of "
-        "benchmarking wireless links at heraklion wireless metropolitan network (hwmn.org).")
+        "benchmarking wireless links at heraklion wireless "
+        "metropolitan network (hwmn.org). If you find a bug please "
+        "report it at https://github.com/sque/nsts")
 group = parser.add_mutually_exclusive_group(required = True)
 group.add_argument("-c", "--connect", help="connect to server.", type=str)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")
@@ -48,6 +50,8 @@ else:
     client = NSTSClient(args.connect)
     client.connect()
     
+    formater = formatters.BasicFormatter()
+    
     # Validate tests
     tests = args.tests.split(",")
     for test in tests:
@@ -56,7 +60,9 @@ else:
             sys.exit(1)
             
     # Execute test
-    results = {}
     for test in tests:
-        results[test] = client.multirun_test(test, args.samples, args.sample_interval)
-    output.basic_formating(results)
+        test_result = client.multirun_test(test, args.samples, args.sample_interval)
+        formater.push_test_results(test_result)
+    
+    # Finish
+    formater.finish()

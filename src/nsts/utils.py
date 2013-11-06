@@ -3,6 +3,7 @@ Created on Nov 3, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
+import numpy as np
 
 def which(program):
     '''
@@ -24,3 +25,21 @@ def which(program):
                 return exe_file
 
     return None
+
+
+class StatisticsArray(object):
+    
+    def __init__(self, array):
+        self.array = np.array(array)
+        
+    def max(self):
+        return self.array.max()
+    
+    def min(self):
+        return self.array.min()
+    
+    def mean(self):
+        return self.array.mean()
+    
+    def std(self):
+        return self.array.std()

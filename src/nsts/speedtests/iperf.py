@@ -5,7 +5,7 @@ Created on Nov 4, 2013
 '''
 import subprocess as proc, time
 import base
-from nsts import utils
+from nsts import utils, units
 
 class IperfExecutorBase(base.SpeedTestExecutor):
 
@@ -68,7 +68,7 @@ class IperfExecutorClient(IperfExecutorBase):
         
         # Parse output
         output = self.get_iperf_output()
-        self.results = float(output.split(',')[8])
+        self.store_result('transfer_rate', units.BitRateUnit(float(output.split(',')[8])))
         self.propagate_results()
     
 class IperfExecutorServer(IperfExecutorBase):
@@ -87,20 +87,26 @@ class IperfExecutorServer(IperfExecutorBase):
         self.kill_iperf()
         self.send_msg("OK")
         
-        # Collect results
+        # Collect __results
         self.collect_results()
 
 
 class IperfTCPSend(base.SpeedTest):
     
     def __init__(self):
-        super(IperfTCPSend, self).__init__("iperf_tcp_send", "TCP send (iperf)", IperfExecutorClient, IperfExecutorServer)
+        descriptors = [
+                base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
+        ]
+        super(IperfTCPSend, self).__init__("iperf_tcp_send", "TCP send (iperf)", IperfExecutorClient, IperfExecutorServer, descriptors)
 
 
 class IperfTCPReceive(base.SpeedTest):
     
     def __init__(self):
-        super(IperfTCPReceive, self).__init__("iperf_tcp_receive", "TCP receive (iperf)", IperfExecutorServer, IperfExecutorClient)
+        descriptors = [
+                base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
+        ]
+        super(IperfTCPReceive, self).__init__("iperf_tcp_receive", "TCP receive (iperf)", IperfExecutorServer, IperfExecutorClient, descriptors)
     
 base.enable_test(IperfTCPSend)
 base.enable_test(IperfTCPReceive)

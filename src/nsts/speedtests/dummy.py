@@ -6,6 +6,7 @@ Created on Nov 4, 2013
 
 import random
 import base
+from nsts import units
 
 
 class DummyTestServer(base.SpeedTestExecutor):
@@ -20,7 +21,8 @@ class DummyTestServer(base.SpeedTestExecutor):
         return True
     
     def run(self):
-        self.results = random.random()
+        self.store_result('random_transfer', units.BitRateUnit(random.random()))
+        self.store_result('random_time', units.TimeUnit(random.random()))
         self.logger.debug("Results are generated. sending them to client.")
         self.propagate_results()
 
@@ -46,7 +48,11 @@ class DummyTestClient(base.SpeedTestExecutor):
     
 class DummyTest(base.SpeedTest):
     def __init__(self):
-        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestClient, DummyTestServer)
+        descriptors = [
+            base.ResultEntryDescriptor('random_transfer', 'Random Transfer', units.BitRateUnit),
+            base.ResultEntryDescriptor('random_time', 'Random Time', units.TimeUnit)
+            ]
+        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestClient, DummyTestServer, descriptors)
 
     
 

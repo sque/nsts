@@ -100,6 +100,9 @@ class Unit(object):
     def __str__(self):
         return self.optimal_scale_str()
     
+    def __repr__(self):
+        return "{0}({1})".format(self.name, self.__str__())
+    
 class BitRateUnit(Unit):
     '''
     BitRate measurement unit
@@ -130,9 +133,6 @@ class TimeUnit(Unit):
                       (3600*24,  'day'),
                       ]
         super(TimeUnit, self).__init__("Time", initial_value, magnitudes)
-
-    def __str__(self):
-        return self.optimal_combined_scale_str()
 
 class PercentageUnit(Unit):
     

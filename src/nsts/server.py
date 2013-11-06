@@ -62,7 +62,7 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             if msg.type_ == "CHECKTEST":
                 self.serve_checktest(tests, msg.params["name"])
             elif msg.type_ == "PREPARETEST":
-                self.serve_run_test(tests[msg.params['name']])
+                self.serve_run_test(tests[msg.params['name']].__class__())
                 
 class NSTSServer(object):
     

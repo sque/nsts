@@ -8,7 +8,7 @@ class ColumnDescriptor(object):
     
     def __init__(self, title, width, align):
         self.width = width
-        self.title = title
+        self.title = str(title)
         
         assert align in ['left', 'right', 'center']
         alignsymbol_hasmap = {'left' : '<', 'center' : '^', 'right' : '>'}
@@ -47,6 +47,7 @@ class Grid(object):
             if c_width == 'fit':
                 column_widths[i] = -1
                 column_widths[i] = max([len(str(row[i])) for row in self.rows])
+                column_widths[i] = max(column_widths[i], len(self.column_descriptor[i].title))
         
         # Calculate space that is fixed
         fixed_space = sum([w for w in column_widths if w is not 'equal'])
@@ -119,7 +120,7 @@ class Grid(object):
         output += self.__render_split_row(column_widths) + "\n"
         
         # Render titles
-        titles = [str(c.title) for c in self.column_descriptor]
+        titles = [c.title for c in self.column_descriptor]
         title_max_size = max([len(t) for t in titles])
         if title_max_size:
             output += self.__render_row(titles, column_widths) + "\n"

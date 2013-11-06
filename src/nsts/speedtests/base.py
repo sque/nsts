@@ -5,7 +5,8 @@ Created on Nov 2, 2013
 '''
 
 import logging, datetime, hashlib, random
-from nsts import proto
+from nsts import proto, utils
+from nsts.units import TimeUnit
 
 # Module logger
 logger = logging.getLogger("test")
@@ -23,7 +24,7 @@ class SpeedTestExecutor(object):
         self.owner = owner
         self.connection = None
         self.logger = logging.getLogger("test.{0}".format(self.owner.name))
-        self.results = None
+        self.__results = None
         
     def initialize(self, connection):
         '''
@@ -60,7 +61,7 @@ class SpeedTestExecutor(object):
         executor.
         '''
         results_msg = self.wait_msg_type("RESULTS")
-        self.results = results_msg.params['results']
+        self.__results = results_msg.params['results']
         
     def is_supported(self):
         '''
@@ -90,33 +91,59 @@ class SpeedTestExecutor(object):
         '''
         raise NotImplementedError()
     
+    def store_result(self, name, value):
+        '''
+        Store a result value in results container
+        '''
+        if self.__results is None:
+            self.__results = {}
+        
+        if not self.owner.result_descriptors.has_key(name):
+            raise LookupError("Cannot store results for an unknown result type")
+        assert isinstance(value, self.owner.result_descriptors[name].unit_type)
+        self.__results[name] = value
+        
     def get_results(self):
         '''
         Get results of the test executor. This function
         returns the value of self.results.
         ''' 
         
-        return self.results
+        return self.__results
 
+class ResultEntryDescriptor(object):
+    '''
+    Descriptor for a result entry
+    '''
+    def __init__(self, name, friendly_name, unit_type):
+        self.name = name
+        self.friendly_name = friendly_name
+        self.unit_type = unit_type
+        
 class SpeedTest(object):
     '''
     Base class for implementing a test
     '''
-    def __init__(self, name, friendly_name, client_executor, server_executor):
+    def __init__(self, name, friendly_name, client_executor, server_executor, result_descriptors):
         self.name = name
         self.friendly_name = friendly_name
         
         assert issubclass(client_executor, SpeedTestExecutor)
         assert issubclass(server_executor, SpeedTestExecutor)
+        assert isinstance(result_descriptors, list)
         self.client_executor = client_executor(self)
         self.server_executor = server_executor(self)
-
+        self.result_descriptors = {}
+        for desc in result_descriptors:
+            self.result_descriptors[desc.name] = desc
+        
     def initialize(self, local_ip, remote_ip):
         pass
-
+    
+    
 class SpeedTestResults(object):
     '''
-    Wrapper class to hold test results
+    Results container of one speedtest execution 
     '''
     
     def __init__(self, test):
@@ -125,22 +152,68 @@ class SpeedTestResults(object):
         
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
-        self.results = None
+        self.values = None
         
         sha1 = hashlib.sha1()
         sha1.update( test.name + str(self.started_at) + str(random.random()))
         self.test_execution_id = sha1.hexdigest()
     
-    def mark_test_finished(self, results):
+    def mark_test_finished(self, values):
         '''
-        Fill end timestamp and save results in the object
+        Fill end timestamp and save results values in the object
+        '''
+        assert isinstance(values, dict)
+        self.ended_at = datetime.datetime.utcnow()
+        self.values = values
+    
+    def execution_time(self):
+        return TimeUnit((self.ended_at - self.started_at).total_seconds())
+    
+    def __iter__(self):
+        return self.values.__iter__()
+
+class SpeedTestMultiSampleResults(SpeedTestResults):
+    
+    def __init__(self, test):
+        super(SpeedTestMultiSampleResults, self).__init__(test)
+        del self.values
+        self.samples = []
+        
+    def push_sample(self, sample):
+        assert isinstance(sample, SpeedTestResults)
+        self.samples.append(sample)
+    
+    def mark_test_finished(self):
+        '''
+        Fill end timestamp and save __results in the object
         '''
         self.ended_at = datetime.datetime.utcnow()
-        self.results = results
-    
-    def get_total_seconds(self):
-        return (self.ended_at - self.started_at).total_seconds()
+        
+    def get_statistics(self):
+        '''
+        Calculate statistics on samples
+        '''
+        reduced = {}
+        for result_entry in self.test.result_descriptors.values():
+            assert isinstance(result_entry, ResultEntryDescriptor)
+            
+            # Collect all samples raw values
+            data = utils.StatisticsArray([sample.values[result_entry.name].raw_value for sample in self.samples])
+            
+            reduced_entry = {
+                'mean' :  result_entry.unit_type(data.mean()),
+                'min' :  result_entry.unit_type(data.min()),
+                'max' :  result_entry.unit_type(data.max()),
+                'std' :  result_entry.unit_type(data.std()),
+            }
+            
+            reduced[result_entry.name] = reduced_entry
 
+        return reduced
+    
+    def __iter__(self):
+        return self.samples.__iter__()
+    
 # A list with all enabled tests
 __enabled_tests = {}
 
@@ -160,6 +233,12 @@ def get_enabled_tests():
     '''
     return __enabled_tests
 
+
+def get_enabled_test(test_name):
+    '''
+    Get access to a specific test
+    '''
+    return __enabled_tests[test_name]
 
 def is_test_enabled(test):
     '''

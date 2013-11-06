@@ -90,18 +90,19 @@ class NSTSClient(object):
         '''
         Run a test and return results
         '''
-        return self.connection.run_test(self.tests[test_name])
+        return self.connection.run_test(self.tests[test_name].__class__())
     
     
     def multirun_test(self, test_name, times, interval_secs = None):
         '''
         Run a test multiple times between intervals and return results
         '''
-        results = []
+        results = base.SpeedTestMultiSampleResults(base.get_enabled_test(test_name))
         
         for i in range(0, times):
-            result = self.run_test(test_name)
-            results.append(result)
+            sample_result = self.run_test(test_name)
+            results.push_sample(sample_result)
             if i < times -1 and interval_secs is not None:
                 time.sleep(interval_secs)
+        results.mark_test_finished()
         return results
