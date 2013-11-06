@@ -26,13 +26,10 @@ class PingExecutorClient(SubProcessExecutorBase):
             raise base.SpeedTestRuntimeError("Unknown error, ping failed to complete.")
         
         values = lines[-2].split()[3].split("/")
-        self.store_result('rtt_min', units.TimeUnit(float(values[0])))
-        self.store_result('rtt_avg', units.TimeUnit(float(values[1])))
-        self.store_result('rtt_max', units.TimeUnit(float(values[2])))
-        self.store_result('rtt_mdev', units.TimeUnit(float(values[3])))
+        self.store_result('rtt', units.TimeUnit(float(values[0])))
         
     def run(self):
-        self.execute_subprocess("-c", "2", self.connection.remote_ip)
+        self.execute_subprocess("-c", "1", self.connection.remote_ip)
         
         while self.is_subprocess_running():
             time.sleep(0.2)
@@ -65,10 +62,7 @@ class PingTest(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
-                base.ResultEntryDescriptor("rtt_min", "RTT (avg)", units.TimeUnit),
-                base.ResultEntryDescriptor("rtt_max", "RTT (max)", units.TimeUnit),
-                base.ResultEntryDescriptor("rtt_avg", "RTT (avg)", units.TimeUnit),
-                base.ResultEntryDescriptor("rtt_mdev", "RTT (mdev)", units.TimeUnit)
+                base.ResultEntryDescriptor("rtt", "RTT", units.TimeUnit),
         ]
         super(PingTest, self).__init__("ping", "Ping", PingExecutorClient, PingExecutorServer, descriptors)
 
