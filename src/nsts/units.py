@@ -137,8 +137,18 @@ class TimeUnit(Unit):
 class PercentageUnit(Unit):
     
     def __init__(self, initial_value = 0):
-        magnitudes = [1,    '%']
-        super(PercentageUnit, self).__init__(initial_value, magnitudes)
+        magnitudes = [
+                      (1 , '%')
+                     ]
+        super(PercentageUnit, self).__init__("Percentage", initial_value, magnitudes)
+
+class PacketUnit(Unit):
+    
+    def __init__(self, initial_value = 0):
+        magnitudes = [
+                      (1 , 'p')
+                     ]
+        super(PacketUnit, self).__init__("Packets", initial_value, magnitudes)
 
 # Example usage
 if __name__ == '__main__':
@@ -172,3 +182,12 @@ if __name__ == '__main__':
                     rate.optimal_scale(),
                     rate.optimal_combined_scale(),
                     str(rate))
+
+    # Percentage
+    print PercentageUnit()
+    print PercentageUnit(90)
+    print PercentageUnit(11.1)
+    
+    print PacketUnit()
+    print PacketUnit(12)
+    print PacketUnit(14)
