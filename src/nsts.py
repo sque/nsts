@@ -10,6 +10,7 @@ from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.speedtests import *
 from nsts.io import formatters
+from nsts.io.grid import Grid
 
 parser = argparse.ArgumentParser(
         epilog="This application was developed for the need of "
@@ -36,21 +37,38 @@ args = parser.parse_args()
 logging.basicConfig(level = args.debug)
 
 if args.list_tests:
+    formater = formatters.BasicFormatter()
+    
     # List tests mode
-    print "Tests currently installed "
-    print "-------------------------"
+    print ""
+    print "Installed SpeedTests"
+    g = Grid(80)
+    g.add_column('ID', width='fit')
+    g.add_column('Name')
+    g.add_column('Client', width = 'fit', align='center')
+    g.add_column('Server', width = 'fit', align='center')
+    
     for test in base.get_enabled_tests().values():
-        print " * [{0}] {1}".format(test.name, test.friendly_name)
+        check_mark = lambda b : 'X' if b else '-' 
+        g.add_row([test.name,
+                test.friendly_name,
+                check_mark(test.client_executor.is_supported()),
+                check_mark(test.server_executor.is_supported())])
+    print g
+    
 elif args.server:
     # Server Mode
     server = NSTSServer()
     server.serve()
 else:
+    formater = formatters.BasicFormatter()
+    formater.connection_info(args.samples, args.connect, '?', args.tests)
+    
     # Client Mode
     client = NSTSClient(args.connect)
     client.connect()
     
-    formater = formatters.BasicFormatter()
+    
     
     # Validate tests
     tests = args.tests.split(",")

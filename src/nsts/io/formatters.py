@@ -3,6 +3,7 @@ Created on Nov 6, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
+import datetime
 from nsts import core
 from nsts.speedtests.base import SpeedTestMultiSampleResults
 from grid import  Grid
@@ -12,10 +13,18 @@ class BasicFormatter(object):
     def __init__(self, width = 80):
         self.width = 80
         self.tests_samples = {}
-        print "Network SpeedTest Suite v{version[0]}.{version[1]}.{version[2]}".format(version = core.VERSION)
-        print "===================================="
+        print "Network SpeedTest Suite [NSTS] Version {version[0]}.{version[1]}.{version[2]}".format(version = core.VERSION)
+        print "Free-software published under GPLv3 license."
+        print "http://github.com/sque/nsts"
+        print "{0:-<{width}}".format("",width= self.width)
         
     
+    def connection_info(self, samples, server, port, tests):
+        print " Started at:", datetime.datetime.now()
+        print " Connected to: {0}:{1}".format(server, port)
+        print " MultiSampling: {0}".format(samples)
+        print " Activated Tests: {0}".format(tests)
+        
     def push_test_results(self, test_samples):
         assert isinstance(test_samples, SpeedTestMultiSampleResults)
         
@@ -36,7 +45,7 @@ class BasicFormatter(object):
             
         # Push data
         for i, sample in enumerate(test_samples):
-            row =[i, sample.execution_time()]
+            row =[i+1, sample.execution_time()]
             row.extend(sample.values.values())
             
             grid.add_row(row)
@@ -53,7 +62,6 @@ class BasicFormatter(object):
             print ""
             print samples.test.friendly_name
             grid = Grid(self.width)
-            grid.add_column('', width='fit')
             grid.add_column('Metric', width='fit')
             grid.add_column('Mean', width='equal')
             grid.add_column('Min', width='equal')
@@ -64,7 +72,6 @@ class BasicFormatter(object):
             for i, metric_name in enumerate(statistics):
                 metric_stats = statistics[metric_name]
                 grid.add_row([
-                    i,
                     samples.test.result_descriptors[metric_name].friendly_name,
                     metric_stats['mean'],
                     metric_stats['min'],
