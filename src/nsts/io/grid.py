@@ -50,7 +50,7 @@ class Grid(object):
         
         # Calculate space that is fixed
         fixed_space = sum([w for w in column_widths if w is not 'equal'])
-        fixed_space += (len(self.column_descriptor) - 1) * 3 + 2    # Space used by cell delimiters
+        fixed_space += (len(self.column_descriptor) - 1) * 3 + 4    # Space used by cell delimiters
 
         # Calculate equal space
         total_equal = column_widths.count('equal')
