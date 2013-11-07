@@ -53,6 +53,8 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise
+        
+        executor.cleanup()
         return results
         
     def process_client_requets(self, tests):
