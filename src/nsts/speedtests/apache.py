@@ -80,17 +80,39 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         
         # Create document root
         os.mkdir(self.document_root())
-        with open(os.path.join(self.document_root(), "file_1M"), "w") as f:
-            f.write(os.urandom(1024*1024))
         
+    def generate_root_file(self, filename, filesize):
+        self.logger.debug("Generating document {0} with size {1}".format(filename, filesize))
+        with open(os.path.join(self.document_root(), filename), "w") as f:
+            chunk_size = 1024*1024
+            written_size = 0
+            while written_size < filesize:
+                f.write(os.urandom(chunk_size))
+                if filesize - written_size < chunk_size:
+                    chunk_size = filesize - written_size
+                written_size += chunk_size
+                    
+
+    def clear_root(self):
+        self.logger.debug("Request to empty document root.")
+        for filename in os.listdir(self.document_root()):
+            os.unlink(os.path.join(self.document_root(), filename))
+    
     def run(self):
         # Start server
         self.wait_msg_type("STARTSERVER")
         self.start_apache()
         self.send_msg("OK")
     
-        # Stop server
-        self.wait_msg_type("STOPSERVER")
+        # Generate random files as requested by client
+        while True:
+            msg = self.wait_msg_type("GENERATEFILE")
+            if msg.params['size'] == 0:
+                break;
+            self.clear_root()
+            self.generate_root_file(msg.params['filename'], msg.params['size'])
+            self.send_msg("OK")
+            
         self.stop_apache()
         self.send_msg("OK")
         
@@ -98,6 +120,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.collect_results()
     
     def cleanup(self):
+        self.logger.debug("Cleaning up everythin!")
         self.stop_apache()
         
         # Cleaning up files
@@ -105,6 +128,9 @@ class ApacheExecutorServer(SubProcessExecutorBase):
             os.unlink(self.pid_file())
         if os.path.isfile(self.error_log_file()):
             os.unlink(self.error_log_file())
+        
+        self.clear_root()
+        os.rmdir(self.document_root())
 
 class WgetExecutorClient(SubProcessExecutorBase):
     
@@ -115,7 +141,9 @@ class WgetExecutorClient(SubProcessExecutorBase):
                 "-O", "/dev/null",
                 "--report-speed=bits"
                 ]
-
+        self.options = {
+                'time_to_run' : 0.1
+                }
     def parse_output(self):
         output = self.get_subprocess_output()
         rate_line = output.split("\n")[-3]
@@ -130,23 +158,42 @@ class WgetExecutorClient(SubProcessExecutorBase):
         speed.parse(match.group(1))
         return speed
         
-    def url_for(self, file):
-        return self.url_base + file
+    def url_for(self, filename):
+        return self.url_base + filename
+    
+    def download_file(self, filename):
+        self.logger.debug("Request to download file {0}".format(filename))
+        self.execute_subprocess(self.url_for(filename), *self.basic_argumnets)
+        while self.is_subprocess_running():
+            time.sleep(0.5)
+        self.logger.debug("Download finished")
+        return self.parse_output()
     
     def run(self):
         self.send_msg("STARTSERVER")
         self.wait_msg_type("OK")
         
-        # Run wget 
-        self.execute_subprocess(self.url_for("file_1M"), *self.basic_argumnets)
-        while self.is_subprocess_running():
-            time.sleep(0.5)
-            
-        speed = self.parse_output()
+        # Run wget on incremental sizes
+        filesize = 1024*1024
+        count = 0
+        while True:
+            filename = "file_{0}".format(count)
+            self.send_msg("GENERATEFILE", {'filename' : filename, 'size' : filesize})
+            self.wait_msg_type('OK') 
+            speed = self.download_file(filename)
+
+            # Ensure that the achieved speed was 10 times smaller than file size
+            if speed.raw_value/float(8) < (filesize /self.options['time_to_run']):
+                break;
+            self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
+            filesize = int((speed.raw_value * self.options['time_to_run'])/float(8))
+            self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
+            count += 1
+
         self.store_result('transfer_rate', speed)
 
         # Stop server
-        self.send_msg("STOPSERVER")
+        self.send_msg("GENERATEFILE", {'size' : 0})
         self.wait_msg_type("OK")
         
         # Propagate results
