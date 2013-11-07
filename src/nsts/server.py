@@ -49,7 +49,8 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             self.wait_msg_type("TESTFINISHED")
             
             results = executor.get_results()
-        except:
+        except Exception, e:
+            logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise
         return results
