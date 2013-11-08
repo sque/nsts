@@ -5,7 +5,7 @@ Created on Nov 6, 2013
 '''
 import time, random, hashlib, os, signal
 from nsts.speedtests import base
-from nsts import units
+from nsts import units, utils
 from subprocess import SubProcessExecutorBase
 import re
 
@@ -77,6 +77,8 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.logger.debug("Found PID {0} in pid file, sending SIGTERM signal".format(pid))
         os.kill(pid, signal.SIGTERM)
         
+        while utils.check_pid(pid):
+            time.sleep(0.2)
         self.apache_running = False
         
     def prepare(self):
@@ -118,6 +120,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
                 break;
             self.clear_root()
             self.generate_root_file(msg.params['filename'], msg.params['size'])
+            time.sleep(1)
             self.send_msg("OK")
             
         self.stop_apache()
@@ -127,14 +130,14 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.collect_results()
     
     def cleanup(self):
-        self.logger.debug("Cleaning up everythin!")
+        self.logger.debug("Cleaning up everything!")
         self.stop_apache()
         
         # Cleaning up files
         if os.path.isfile(self.pid_file()):
             os.unlink(self.pid_file())
-        #if os.path.isfile(self.error_log_file()):
-        #    os.unlink(self.error_log_file())
+        if os.path.isfile(self.error_log_file()):
+            os.unlink(self.error_log_file())
         if os.path.isfile(self.access_log_file()):
             os.unlink(self.access_log_file())
         
@@ -196,7 +199,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
             if speed.raw_value < (filesize /self.options['time_to_run']):
                 break;
             self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
-            filesize = int(speed.raw_value * self.options['time_to_run'])
+            filesize = int(speed.raw_value * self.options['time_to_run'] * 1.5)
             self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
             count += 1
 

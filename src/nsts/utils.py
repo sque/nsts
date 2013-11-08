@@ -3,6 +3,7 @@ Created on Nov 3, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
+import os
 import numpy as np
 
 def which(program):
@@ -26,6 +27,17 @@ def which(program):
 
     return None
 
+
+def check_pid(pid):
+    """
+    Check For the existence of a unix pid.
+    """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
 
 class StatisticsArray(object):
     
