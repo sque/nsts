@@ -228,6 +228,6 @@ class ApacheTest(base.SpeedTest):
         descriptors = [
                 base.ResultEntryDescriptor("transfer_rate", "TransferRate", units.ByteRateUnit),
         ]
-        super(ApacheTest, self).__init__("apache", "HTTP (apache)", WgetExecutorClient, ApacheExecutorServer, descriptors)
+        super(ApacheTest, self).__init__("apache", "HTTP (apache)", ApacheExecutorServer, WgetExecutorClient, descriptors)
 
 base.enable_test(ApacheTest)

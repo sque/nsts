@@ -59,6 +59,7 @@ of test.
 ---------------------------------
 PARAMS = {
 	"name"			// (string) unique name of the test
+	"direction"		// (enum) = { "receive", "send" }
 }
 Requests the other end to prepare a test for
 execution. An OK reply is expected.
@@ -94,9 +95,9 @@ PARAMS = {
 
 2.8 "__XXXXX_YYYYY"
 ---------------------------------
-If a test needs to intercommunicate it can
-send custom message. The type of the message must be in the 
-form of 
+If a test needs to intercommunicate it can send custom
+message. The type of the message must be in the form
+of 
 
 __XXXX_YYYYY where 
 XXXX is the unique name of the test

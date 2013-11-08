@@ -125,20 +125,51 @@ class ResultEntryDescriptor(object):
         self.name = name
         self.friendly_name = friendly_name
         self.unit_type = unit_type
+
+class SpeedTestExecutorDirection(object):
+    
+    def __init__(self, initial):
+        assert initial in ["send", "receive"]
+        self.__direction = initial
         
+    def __eq__(self, other):
+        assert type(other) == type(self)
+        return self.__direction == other.__direction
+    
+    def __ne__(self, other):
+        assert type(other) == type(self)
+        return self.__direction != other.__direction
+    
+    def is_send(self):
+        return self.__direction == "send"
+    
+    def is_receive(self):
+        return self.__direction == "receive"
+    
+    def opposite(self):
+        if self.is_send():
+            return SpeedTestExecutorDirection("receive")
+        else:
+            return SpeedTestExecutorDirection("send")
+        
+    def __str__(self):
+        return self.__direction
+    
+    def __repr__(self):
+        return self.__direction
 class SpeedTest(object):
     '''
     Base class for implementing a test
     '''
-    def __init__(self, name, friendly_name, client_executor, server_executor, result_descriptors):
+    def __init__(self, name, friendly_name, send_executor, receive_executor, result_descriptors):
         self.name = name
         self.friendly_name = friendly_name
         
-        assert issubclass(client_executor, SpeedTestExecutor)
-        assert issubclass(server_executor, SpeedTestExecutor)
+        assert issubclass(send_executor, SpeedTestExecutor)
+        assert issubclass(receive_executor, SpeedTestExecutor)
         assert isinstance(result_descriptors, list)
-        self.client_executor = client_executor(self)
-        self.server_executor = server_executor(self)
+        self.__send_executor = send_executor(self)
+        self.__receive_executor = receive_executor(self)
         self.result_descriptors = {}
         for desc in result_descriptors:
             self.result_descriptors[desc.name] = desc
@@ -146,6 +177,16 @@ class SpeedTest(object):
     def initialize(self, local_ip, remote_ip):
         pass
     
+    def get_executor(self, direction):
+        '''
+        Choose executor by specific direction.
+        '''
+        assert isinstance(direction, SpeedTestExecutorDirection)
+        
+        if direction.is_send():
+            return self.__send_executor
+        else:
+            return self.__receive_executor
     
 class SpeedTestResults(object):
     '''

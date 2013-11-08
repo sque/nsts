@@ -52,8 +52,8 @@ if args.list_tests:
         check_mark = lambda b : 'X' if b else '-' 
         g.add_row([test.name,
                 test.friendly_name,
-                check_mark(test.client_executor.is_supported()),
-                check_mark(test.server_executor.is_supported())])
+                'X','X'])#check_mark(test.client_executor.is_supported()),
+               # check_mark(test.server_executor.is_supported())])
     print g
     
 elif args.server:
@@ -78,8 +78,9 @@ else:
             sys.exit(1)
             
     # Execute test
+    send = base.SpeedTestExecutorDirection('send')
     for test in tests:
-        test_result = client.multirun_test(test, args.samples, args.sample_interval)
+        test_result = client.multirun_test(test, send, args.samples, args.sample_interval)
         formater.push_test_results(test_result)
     
     # Finish

@@ -9,10 +9,10 @@ import base
 from nsts import units
 
 
-class DummyTestServer(base.SpeedTestExecutor):
+class DummyTestSender(base.SpeedTestExecutor):
     
     def __init__(self, owner):
-        super(DummyTestServer, self).__init__(owner)
+        super(DummyTestSender, self).__init__(owner)
         
     def is_supported(self):
         return True
@@ -23,16 +23,16 @@ class DummyTestServer(base.SpeedTestExecutor):
     def run(self):
         self.store_result('random_transfer', units.BitRateUnit(random.random()))
         self.store_result('random_time', units.TimeUnit(random.random()))
-        self.logger.debug("Results are generated. sending them to client.")
+        self.logger.debug("Results have been generated. Sending them to client...")
         self.propagate_results()
 
     def cleanup(self):
         pass
     
-class DummyTestClient(base.SpeedTestExecutor):
+class DummyTestReceiver(base.SpeedTestExecutor):
     
     def __init__(self, owner):
-        super(DummyTestClient, self).__init__(owner)
+        super(DummyTestReceiver, self).__init__(owner)
         
     def is_supported(self):
         return True
@@ -52,7 +52,7 @@ class DummyTest(base.SpeedTest):
             base.ResultEntryDescriptor('random_transfer', 'Random Transfer', units.BitRateUnit),
             base.ResultEntryDescriptor('random_time', 'Random Time', units.TimeUnit)
             ]
-        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestClient, DummyTestServer, descriptors)
+        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestSender, DummyTestReceiver, descriptors)
 
     
 

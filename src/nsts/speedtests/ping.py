@@ -9,10 +9,10 @@ from nsts import utils, units
 from subprocess import SubProcessExecutorBase
 
 
-class PingExecutorClient(SubProcessExecutorBase):
+class PingExecutorSender(SubProcessExecutorBase):
     
     def __init__(self, owner):
-        super(PingExecutorClient, self).__init__(owner, 'ping')
+        super(PingExecutorSender, self).__init__(owner, 'ping')
         
     def prepare(self):
         return True
@@ -41,10 +41,10 @@ class PingExecutorClient(SubProcessExecutorBase):
         self.propagate_results()
     
 
-class PingExecutorServer(base.SpeedTestExecutor):
+class PingExecutorReceiver(base.SpeedTestExecutor):
     
     def __init__(self, owner):
-        super(PingExecutorServer, self).__init__(owner)
+        super(PingExecutorReceiver, self).__init__(owner)
         
     def run(self):
         self.collect_results()
@@ -64,6 +64,6 @@ class PingTest(base.SpeedTest):
         descriptors = [
                 base.ResultEntryDescriptor("rtt", "RTT", units.TimeUnit),
         ]
-        super(PingTest, self).__init__("ping", "Ping", PingExecutorClient, PingExecutorServer, descriptors)
+        super(PingTest, self).__init__("ping", "Ping", PingExecutorSender, PingExecutorReceiver, descriptors)
 
 base.enable_test(PingTest)

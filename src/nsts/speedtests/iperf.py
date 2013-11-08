@@ -5,14 +5,14 @@ Created on Nov 4, 2013
 '''
 import time
 import base
-from nsts import utils, units
+from nsts import units
 from subprocess import SubProcessExecutorBase
 
         
-class IperfExecutorClient(SubProcessExecutorBase):
+class IperfExecutorSender(SubProcessExecutorBase):
     
     def __init__(self, owner):
-        super(IperfExecutorClient, self).__init__(owner, 'iperf')
+        super(IperfExecutorSender, self).__init__(owner, 'iperf')
         self.server_arguments = ["-s"]
         self.client_arguments = ["-t" "5", "-y", "C"]
         
@@ -39,10 +39,10 @@ class IperfExecutorClient(SubProcessExecutorBase):
         self.parse_and_store_output()
         self.propagate_results()
 
-class IperfExecutorServer(SubProcessExecutorBase):
+class IperfExecutorReceiver(SubProcessExecutorBase):
     
     def __init__(self, owner):
-        super(IperfExecutorServer, self).__init__(owner, 'iperf')
+        super(IperfExecutorReceiver, self).__init__(owner, 'iperf')
         
     def prepare(self):
         return True
@@ -60,17 +60,17 @@ class IperfExecutorServer(SubProcessExecutorBase):
         # Collect __results
         self.collect_results()
 
-class IperfJitterExecutorClient(IperfExecutorClient):
+class IperfJitterExecutorSender(IperfExecutorSender):
     
     def __init__(self, owner):
-        super(IperfJitterExecutorClient, self).__init__(owner)
+        super(IperfJitterExecutorSender, self).__init__(owner)
         self.server_arguments = ["-s", "-u"]
         self.client_arguments = ["-u", "-t" "5", "-y", "C"]
         
     def parse_and_store_output(self):
         output = self.get_subprocess_output().split("\n")
         
-        sent = output[0].split(',')
+        #sent = output[0].split(',')
         received = output[1].split(',')
         self.store_result('transfer_rate', units.BitRateUnit(float(received[8])))
         self.store_result('jitter', units.TimeUnit(float(received[9])))
@@ -82,24 +82,15 @@ class IperfJitterExecutorClient(IperfExecutorClient):
 
 
 
-class IperfTCPSend(base.SpeedTest):
+class IperfTCP(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
                 base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
         ]
-        super(IperfTCPSend, self).__init__("iperf_tcp_send", "TCP send (iperf)", IperfExecutorClient, IperfExecutorServer, descriptors)
+        super(IperfTCP, self).__init__("iperf_tcp", "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver, descriptors)
 
-
-class IperfTCPReceive(base.SpeedTest):
-    
-    def __init__(self):
-        descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
-        ]
-        super(IperfTCPReceive, self).__init__("iperf_tcp_receive", "TCP receive (iperf)", IperfExecutorServer, IperfExecutorClient, descriptors)
-
-class IperfJitterSend(base.SpeedTest):
+class IperfJitter(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
@@ -109,21 +100,7 @@ class IperfJitterSend(base.SpeedTest):
                 base.ResultEntryDescriptor("total_packets", "Total Pck", units.PacketUnit),
                 base.ResultEntryDescriptor("percentage_lost", "Lost Pck %", units.PercentageUnit)
         ]
-        super(IperfJitterSend, self).__init__("iperf_jitter_send", "Jitter send (iperf)", IperfJitterExecutorClient, IperfExecutorServer, descriptors)
+        super(IperfJitter, self).__init__("iperf_jitter", "Jitter (iperf)", IperfJitterExecutorSender, IperfExecutorReceiver, descriptors)
 
-class IperfJitterReceive(base.SpeedTest):
-    
-    def __init__(self):
-        descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "Trans. Rate", units.BitRateUnit),
-                base.ResultEntryDescriptor("jitter", "Jitter", units.TimeUnit),
-                base.ResultEntryDescriptor("lost_packets", "Lost Pck", units.PacketUnit),
-                base.ResultEntryDescriptor("total_packets", "Total Pck", units.PacketUnit),
-                base.ResultEntryDescriptor("percentage_lost", "Lost Pck %", units.PercentageUnit)
-        ]
-        super(IperfJitterReceive, self).__init__("iperf_jitter_receive", "Jitter receive (iperf)", IperfExecutorServer, IperfJitterExecutorClient, descriptors)
-        
-base.enable_test(IperfTCPSend)
-base.enable_test(IperfTCPReceive)
-base.enable_test(IperfJitterSend)
-base.enable_test(IperfJitterReceive)
+base.enable_test(IperfTCP)
+base.enable_test(IperfJitter)

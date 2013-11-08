@@ -19,7 +19,8 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
         installed = tests.has_key(name)
         supported = False
         if installed:
-            supported = tests[name].server_executor.is_supported()
+            supported = True # tests[name].server_executor.is_supported()
+            logger.warning("FIX ME")
         self.send_msg("TESTINFO",{
                     "name" : name,
                     "installed" : installed,
@@ -27,9 +28,9 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
                     "error" : "unknown"
                     })
 
-    def serve_run_test(self, test):
+    def serve_run_test(self, test, direction):
         logger.info("Client requested execution of test {0}.".format(test.friendly_name))
-        executor = test.server_executor
+        executor = test.get_executor(direction)
         assert isinstance(executor, base.SpeedTestExecutor)
         
         # PREPARE
@@ -65,7 +66,8 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             if msg.type_ == "CHECKTEST":
                 self.serve_checktest(tests, msg.params["name"])
             elif msg.type_ == "PREPARETEST":
-                self.serve_run_test(tests[msg.params['name']].__class__())
+                direction = base.SpeedTestExecutorDirection(msg.params["direction"])
+                self.serve_run_test(tests[msg.params['name']].__class__(), direction)
                 
 class NSTSServer(object):
     

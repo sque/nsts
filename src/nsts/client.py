@@ -15,16 +15,16 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
     def __init__(self, connection):
         super(NSTSConnectionClient, self).__init__(connection)
     
-    def run_test(self, test):
+    def run_test(self, test, direction):
         """
         Execute a complete test on get results back
         """
-        
+        assert isinstance(direction, base.SpeedTestExecutorDirection)
         logger.info("Starting test '{0}'".format(test.friendly_name))
 
         # ASSURE
         logger.debug("Checking test '{0}'".format(test.name))
-        executor = test.client_executor
+        executor = test.get_executor(direction)
         self.assure_test(test.name)
         if not executor.is_supported():
             logger.info("Test '{0}' is not supported.".format(test.name))
@@ -37,7 +37,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
             
             executor.initialize(self)
             logger.debug("Preparing test '{0}'.".format(test.name))
-            self.send_msg("PREPARETEST", {"name" : test.name})
+            self.send_msg("PREPARETEST", {"name" : test.name, "direction" : str(direction.opposite())})
             self.wait_msg_type("OK")
             executor.prepare()
             
@@ -87,21 +87,21 @@ class NSTSClient(object):
         self.connection.handshake(remote_ip)
         
             
-    def run_test(self, test_name):
+    def run_test(self, test_id, direction):
         '''
         Run a test and return results
         '''
-        return self.connection.run_test(self.tests[test_name].__class__())
+        return self.connection.run_test(self.tests[test_id].__class__(), direction)
     
     
-    def multirun_test(self, test_name, times, interval_secs = None):
+    def multirun_test(self, test_id, direction, times, interval_secs = None):
         '''
         Run a test multiple times between intervals and return results
         '''
-        results = base.SpeedTestMultiSampleResults(base.get_enabled_test(test_name))
+        results = base.SpeedTestMultiSampleResults(base.get_enabled_test(test_id))
         
         for i in range(0, times):
-            sample_result = self.run_test(test_name)
+            sample_result = self.run_test(test_id, direction)
             results.push_sample(sample_result)
             if i < times -1 and interval_secs is not None:
                 time.sleep(interval_secs)
