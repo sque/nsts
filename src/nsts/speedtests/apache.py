@@ -30,6 +30,9 @@ class ApacheExecutorServer(SubProcessExecutorBase):
     def error_log_file(self):
         return "/tmp/nsts-apache-error-{0}.log".format(self.execution_id)
     
+    def access_log_file(self):
+        return "/tmp/nsts-apache-access-{0}.log".format(self.execution_id)
+    
     def document_root(self):
         return "/tmp/nsts-apache-root-{0}".format(self.execution_id)
     
@@ -38,7 +41,10 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         # Prepare apache arguments
         extra_arguments = list(self.apache_basic_options)
         extra_arguments.append("PidFile {0}".format(self.pid_file()))
+        extra_arguments.append('LogFormat "%h %l %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-agent}i\\"" combined')
+        print extra_arguments
         extra_arguments.append("ErrorLog {0}".format(self.error_log_file()))
+        extra_arguments.append("CustomLog {0} combined".format(self.access_log_file()))
         extra_arguments.append("DocumentRoot {0}".format(self.document_root()))
         extra_arguments.append("Listen {0}".format(HTTP_PORT))
         
@@ -50,6 +56,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         # Start apache
         self.logger.debug("Starting apache server")
         self.execute_subprocess(*apache_arguments)
+        print self.get_subprocess_output()
         
         # Wait for apache to begin
         while self.is_subprocess_running():
@@ -126,8 +133,10 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         # Cleaning up files
         if os.path.isfile(self.pid_file()):
             os.unlink(self.pid_file())
-        if os.path.isfile(self.error_log_file()):
-            os.unlink(self.error_log_file())
+        #if os.path.isfile(self.error_log_file()):
+        #    os.unlink(self.error_log_file())
+        if os.path.isfile(self.access_log_file()):
+            os.unlink(self.access_log_file())
         
         self.clear_root()
         os.rmdir(self.document_root())
@@ -138,12 +147,13 @@ class WgetExecutorClient(SubProcessExecutorBase):
         super(WgetExecutorClient, self).__init__(owner, 'wget')
         self.basic_argumnets = [
                 "--no-cache",
-                "-O", "/dev/null",
-                "--report-speed=bits"
+                "-O", "/dev/null"
+                #"--report-speed=bits"
                 ]
         self.options = {
                 'time_to_run' : 0.1
                 }
+
     def parse_output(self):
         output = self.get_subprocess_output()
         rate_line = output.split("\n")[-3]
@@ -154,13 +164,13 @@ class WgetExecutorClient(SubProcessExecutorBase):
         if not match:
             raise base.SpeedTestRuntimeError("Cannot parse wget output.")
         
-        speed = units.BitRateUnit()
+        speed = units.ByteRateUnit()
         speed.parse(match.group(1))
         return speed
         
     def url_for(self, filename):
         return self.url_base + filename
-    
+        
     def download_file(self, filename):
         self.logger.debug("Request to download file {0}".format(filename))
         self.execute_subprocess(self.url_for(filename), *self.basic_argumnets)
@@ -183,10 +193,10 @@ class WgetExecutorClient(SubProcessExecutorBase):
             speed = self.download_file(filename)
 
             # Ensure that the achieved speed was 10 times smaller than file size
-            if speed.raw_value/float(8) < (filesize /self.options['time_to_run']):
+            if speed.raw_value < (filesize /self.options['time_to_run']):
                 break;
             self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
-            filesize = int((speed.raw_value * self.options['time_to_run'])/float(8))
+            filesize = int(speed.raw_value * self.options['time_to_run'])
             self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
             count += 1
 
@@ -213,7 +223,7 @@ class ApacheTest(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "TransferRate", units.BitRateUnit),
+                base.ResultEntryDescriptor("transfer_rate", "TransferRate", units.ByteRateUnit),
         ]
         super(ApacheTest, self).__init__("apache", "HTTP (apache)", WgetExecutorClient, ApacheExecutorServer, descriptors)
 

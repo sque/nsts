@@ -192,7 +192,30 @@ class BitRateUnit(Unit):
                 }
         
         super(BitRateUnit, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
- 
+
+class ByteRateUnit(Unit):
+    '''
+    ByteRate measurement unit
+    '''
+    
+    def __init__(self, initial_value = 0):
+        magnitudes = [
+                      (1,     'bytes/s'),
+                      (10**3, 'KByte/s'),
+                      (10**6, 'MByte/s'),
+                      (10**9, 'GByte/s'),
+                      (10**11,'TByte/s')]
+        
+        alt_magnitude_names = {
+                'bytes/s' : ['Bytes/s', 'B/s', 'Bps'],
+                'KByte/s' : ['KByte/s', 'KBytes/s', 'KB/s', 'kBps'],
+                'MByte/s' : ['MBytes/s', 'MB/s', 'MBps'],
+                'GByte/s' : ['GBytes/s', 'GB/s', 'GBps'],
+                'TByte/s' : ['TBytes/s', 'TB/s', 'TBps'],
+                }
+        
+        super(ByteRateUnit, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
+
 
 class TimeUnit(Unit):
     '''
@@ -293,6 +316,27 @@ if __name__ == '__main__':
         print "Caught exception as expected"
         
     
+    byte_tests = [
+                ("1Bps", ByteRateUnit(1)),
+                ("40 Bps", ByteRateUnit(40)),
+                ("47 Bytes/s", ByteRateUnit(47)),
+                ("12.67 GBytes/s", ByteRateUnit(12.67*1000*1000*1000)),
+                ("12.32 GB/s", ByteRateUnit(12.32*1000*1000*1000)),
+                ("12.543 GBps", ByteRateUnit(12.543*1000*1000*1000))
+            ]
+    
+    for btest in byte_tests:
+        b = ByteRateUnit()
+        b.parse(btest[0])
+        assert b == btest[1]
+        print btest[0], b, btest[1] 
+    
+    try:
+        b.parse("12.543 dummy")
+    except:
+        print "Caught exception as expected"
+        
+        
     print "\nComparisons"
     assert not BitRateUnit(0)
     assert BitRateUnit(1)

@@ -19,7 +19,7 @@ class SubProcessExecutorBase(SpeedTestExecutor):
         args = [self.subprocess_executable]
         args.extend(extra_args)
         self.logger.debug("Starting subprocess - {0}.".format(args))
-        self.subprocess_handle = proc.Popen(args, stdout = proc.PIPE, stderr = proc.STDOUT)
+        self.subprocess_handle = proc.Popen(args, stdout = proc.PIPE, stderr = proc.STDOUT, close_fds=True)
         
     def is_supported(self):
         return self.subprocess_executable is not None
