@@ -24,15 +24,19 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.execution_id = None
         self.apache_running = False
 
+    @property
     def pid_file(self):
         return "/tmp/nsts-apache-{0}.pid".format(self.execution_id)
     
+    @property
     def error_log_file(self):
         return "/tmp/nsts-apache-error-{0}.log".format(self.execution_id)
     
+    @property
     def access_log_file(self):
         return "/tmp/nsts-apache-access-{0}.log".format(self.execution_id)
     
+    @property
     def document_root(self):
         return "/tmp/nsts-apache-root-{0}".format(self.execution_id)
     
@@ -40,12 +44,12 @@ class ApacheExecutorServer(SubProcessExecutorBase):
 
         # Prepare apache arguments
         extra_arguments = list(self.apache_basic_options)
-        extra_arguments.append("PidFile {0}".format(self.pid_file()))
+        extra_arguments.append("PidFile {0}".format(self.pid_file))
         extra_arguments.append('LogFormat "%h %l %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-agent}i\\"" combined')
         print extra_arguments
-        extra_arguments.append("ErrorLog {0}".format(self.error_log_file()))
-        extra_arguments.append("CustomLog {0} combined".format(self.access_log_file()))
-        extra_arguments.append("DocumentRoot {0}".format(self.document_root()))
+        extra_arguments.append("ErrorLog {0}".format(self.error_log_file))
+        extra_arguments.append("CustomLog {0} combined".format(self.access_log_file))
+        extra_arguments.append("DocumentRoot {0}".format(self.document_root))
         extra_arguments.append("Listen {0}".format(HTTP_PORT))
         
         apache_arguments = ["-d", "/tmp"]
@@ -69,11 +73,11 @@ class ApacheExecutorServer(SubProcessExecutorBase):
             return
         
         self.logger.debug("Stopping apache server gracefully.")
-        if not os.path.isfile(self.pid_file()):
-            raise base.SpeedTestRuntimeError("There is no PID file {0}".format(self.pid_file()))
+        if not os.path.isfile(self.pid_file):
+            raise base.SpeedTestRuntimeError("There is no PID file {0}".format(self.pid_file))
         
         # Stopping apache
-        pid = int(open(self.pid_file(), "r").read().strip())
+        pid = int(open(self.pid_file, "r").read().strip())
         self.logger.debug("Found PID {0} in pid file, sending SIGTERM signal".format(pid))
         os.kill(pid, signal.SIGTERM)
         
@@ -88,11 +92,11 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.execution_id = sha1.hexdigest()
         
         # Create document root
-        os.mkdir(self.document_root())
+        os.mkdir(self.document_root)
         
     def generate_root_file(self, filename, filesize):
         self.logger.debug("Generating document {0} with size {1}".format(filename, filesize))
-        with open(os.path.join(self.document_root(), filename), "w") as f:
+        with open(os.path.join(self.document_root, filename), "w") as f:
             chunk_size = 1024*1024
             written_size = 0
             while written_size < filesize:
@@ -104,8 +108,10 @@ class ApacheExecutorServer(SubProcessExecutorBase):
 
     def clear_root(self):
         self.logger.debug("Request to empty document root.")
-        for filename in os.listdir(self.document_root()):
-            os.unlink(os.path.join(self.document_root(), filename))
+        if not os.path.isdir(self.document_root):
+            return
+        for filename in os.listdir(self.document_root):
+            os.unlink(os.path.join(self.document_root, filename))
     
     def run(self):
         # Start server
@@ -134,15 +140,16 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         self.stop_apache()
         
         # Cleaning up files
-        if os.path.isfile(self.pid_file()):
-            os.unlink(self.pid_file())
-        if os.path.isfile(self.error_log_file()):
-            os.unlink(self.error_log_file())
-        if os.path.isfile(self.access_log_file()):
-            os.unlink(self.access_log_file())
+        if os.path.isfile(self.pid_file):
+            os.unlink(self.pid_file)
+        if os.path.isfile(self.error_log_file):
+            os.unlink(self.error_log_file)
+        if os.path.isfile(self.access_log_file):
+            os.unlink(self.access_log_file)
         
         self.clear_root()
-        os.rmdir(self.document_root())
+        if os.path.isdir(self.document_root):
+            os.rmdir(self.document_root)
 
 class WgetExecutorClient(SubProcessExecutorBase):
     
@@ -214,7 +221,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
         
     
     def prepare(self):
-        self.url_base = "http://{remote}:{port}/".format(remote = self.connection.remote_ip, port = HTTP_PORT)
+        self.url_base = "http://{remote}:{port}/".format(remote = self.connection.remote_addr, port = HTTP_PORT)
     
     def is_supported(self):
         return True

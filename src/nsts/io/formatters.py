@@ -12,7 +12,7 @@ class BasicFormatter(object):
     
     def __init__(self, width = 80):
         self.width = 80
-        self.tests_samples = {}
+        self.tests_samples = []
         print "Network SpeedTest Suite [NSTS] Version {version[0]}.{version[1]}.{version[2]}".format(version = core.VERSION)
         print "Free-software published under GPLv3 license."
         print "http://github.com/sque/nsts"
@@ -28,11 +28,11 @@ class BasicFormatter(object):
     def push_test_results(self, test_samples):
         assert isinstance(test_samples, SpeedTestMultiSampleExecution)
         
-        self.tests_samples[test_samples.test.name] = test_samples
+        self.tests_samples.append(test_samples)
             
         # Show table of analytic results
         print ""
-        print test_samples.test.name
+        print test_samples.samples[0].name
         print "samples: {0} | took: {1} | started: {2}".format(
                 len(test_samples.samples),
                 test_samples.execution_time().optimal_combined_scale_str(),
@@ -58,9 +58,9 @@ class BasicFormatter(object):
         print "{0:=<{width}}".format("", width = self.width)
         
         
-        for samples in self.tests_samples.values():
+        for samples in self.tests_samples:
             print ""
-            print samples.test.name
+            print samples.samples[0].name
             grid = Grid(self.width)
             grid.add_column('Metric', width='fit')
             grid.add_column('Mean', width='equal')
@@ -68,7 +68,7 @@ class BasicFormatter(object):
             grid.add_column('Max', width='equal')
             grid.add_column('StdDev', width='equal')
         
-            statistics = samples.get_statistics()
+            statistics = samples.statistics()
             for i, metric_name in enumerate(statistics):
                 metric_stats = statistics[metric_name]
                 grid.add_row([

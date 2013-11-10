@@ -12,6 +12,24 @@ from nsts.speedtests import *
 from nsts.io import formatters
 from nsts.io.grid import Grid
 
+def parse_test_arg(name):
+    if not "-" in name:
+        return [
+                (name, base.SpeedTestExecutorDirection("send")),
+                (name, base.SpeedTestExecutorDirection("receive"))
+                ]
+    parts = name.split("-")
+    test_name = parts[0]
+    if parts[1] not in ["s", "r"]:
+        raise RuntimeError("Test directive can be 'r' or 's'.")
+    
+    if parts[1] == 's':
+        test_dir = base.SpeedTestExecutorDirection("send")
+    else:
+        test_dir = base.SpeedTestExecutorDirection("receive")
+    
+    return [(test_name, test_dir)]
+    
 parser = argparse.ArgumentParser(
         epilog="This application was developed for the need of "
         "benchmarking wireless links at heraklion wireless "
@@ -68,19 +86,20 @@ else:
     client = NSTSClient(args.connect)
     client.connect()
     
-    
-    
     # Validate tests
-    tests = args.tests.split(",")
+    tests_arg = args.tests.split(",")
+    tests = []
+    for test_arg in tests_arg:
+        tests.extend(parse_test_arg(test_arg))
+        
     for test in tests:
-        if not base.is_test_enabled(test):
-            print "Test '{0}' is unknown.".format(test)
+        if not base.is_test_enabled(test[0]):
+            print "Test '{0}' is unknown.".format(test[0])
             sys.exit(1)
             
     # Execute test
-    send = base.SpeedTestExecutorDirection('send')
     for test in tests:
-        test_result = client.multirun_test(test, send, args.samples, args.sample_interval)
+        test_result = client.multirun_test(test[0], test[1], args.samples, args.sample_interval)
         formater.push_test_results(test_result)
     
     # Finish

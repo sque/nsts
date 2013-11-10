@@ -216,7 +216,7 @@ class SpeedTest(object):
         '''
         return self.__friendly_name
     
-    def get_executor(self, direction):
+    def executor(self, direction):
         '''
         Choose executor by specific direction.
         '''
@@ -288,7 +288,7 @@ class SpeedTestExecution(object):
         '''
         Get executor for this execution
         '''
-        return self.test.get_executor(self.direction)
+        return self.test.executor(self.direction)
     
     @property
     def results(self):
@@ -344,10 +344,13 @@ class SpeedTestMultiSampleExecution(object):
         return self.samples[0].started_at
     
     def push_sample(self, sample):
+        '''
+        Push another sample in the execution list
+        '''
         assert isinstance(sample, SpeedTestExecution)
         self.samples.append(sample)
     
-    def get_statistics(self):
+    def statistics(self):
         '''
         Calculate statistics on samples
         '''

@@ -29,7 +29,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         self.store_result('rtt', units.TimeUnit(float(values[0])))
         
     def run(self):
-        self.execute_subprocess("-c", "1", self.connection.remote_ip)
+        self.execute_subprocess("-c", "1", self.connection.remote_addr)
         
         while self.is_subprocess_running():
             time.sleep(0.2)
