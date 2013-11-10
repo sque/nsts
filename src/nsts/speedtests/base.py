@@ -27,11 +27,26 @@ class SpeedTestExecutor(object):
         @param owner The owner SpeedTest of this executor
         '''
         assert isinstance(owner, SpeedTest)
-        self.owner = owner
+        self.__owner = owner
         self.connection = None
         self.logger = logging.getLogger("test.{0}".format(self.owner.name))
         self.__results = None
-        
+    
+    @property
+    def owner(self):
+        '''
+        Get SpeedTest Owner of this executor instance
+        '''
+        return self.__owner
+
+    @property
+    def results(self):
+        '''
+        Get results of the test executor. This function
+        returns the value of self.results.
+        ''' 
+        return self.__results
+    
     def initialize(self, connection):
         '''
         Called by the NSTS system to initialize executor
@@ -46,20 +61,32 @@ class SpeedTestExecutor(object):
         Wrapper for sending messages in the way that protocol
         defines inter-test communication.
         '''
-        return self.connection.send_msg("__{0}_{1}".format(self.owner.name, msg_type), msg_params)
+        return self.connection.send_msg("__{0}_{1}".format(self.owner.id, msg_type), msg_params)
     
     def wait_msg_type(self, expected_type):
         '''
         Wrapper for receiving messages in the way that protocol
         defines inter-test communication.
         '''
-        return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.name, expected_type))
+        return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.id, expected_type))
+    
+    def store_result(self, name, value):
+        '''
+        Store a result value in results container
+        '''
+        if self.__results is None:
+            self.__results = {}
+        
+        if not self.owner.result_descriptors.has_key(name):
+            raise LookupError("Cannot store results for an unknown result type")
+        assert isinstance(value, self.owner.result_descriptors[name].unit_type)
+        self.__results[name] = value
     
     def propagate_results(self):
         '''
         Propagate results to the other executors
         '''
-        self.send_msg("RESULTS", {"results" : self.get_results()})
+        self.send_msg("RESULTS", {"results" : self.results})
         
     def collect_results(self):
         '''
@@ -97,25 +124,6 @@ class SpeedTestExecutor(object):
         '''
         raise NotImplementedError()
     
-    def store_result(self, name, value):
-        '''
-        Store a result value in results container
-        '''
-        if self.__results is None:
-            self.__results = {}
-        
-        if not self.owner.result_descriptors.has_key(name):
-            raise LookupError("Cannot store results for an unknown result type")
-        assert isinstance(value, self.owner.result_descriptors[name].unit_type)
-        self.__results[name] = value
-        
-    def get_results(self):
-        '''
-        Get results of the test executor. This function
-        returns the value of self.results.
-        ''' 
-        
-        return self.__results
 
 class ResultEntryDescriptor(object):
     '''
@@ -127,11 +135,42 @@ class ResultEntryDescriptor(object):
         self.unit_type = unit_type
 
 class SpeedTestExecutorDirection(object):
+    '''
+    Encapsulates the logic of data direction in execution.
+    '''
     
     def __init__(self, initial):
+        '''
+        Create an initialized object
+        @param direction A string 'send' or 'receive' for the
+        state of this object
+        '''
         assert initial in ["send", "receive"]
         self.__direction = initial
         
+    
+    def is_send(self):
+        '''
+        Check if it is sending direction
+        '''
+        return self.__direction == "send"
+    
+    def is_receive(self):
+        '''
+        Check if it is receiving direction
+        '''
+        return self.__direction == "receive"
+    
+    def opposite(self):
+        '''
+        Get SpeedTestExecutorDirection object with
+        the opposite direction.
+        '''
+        if self.is_send():
+            return SpeedTestExecutorDirection("receive")
+        else:
+            return SpeedTestExecutorDirection("send")
+    
     def __eq__(self, other):
         assert type(other) == type(self)
         return self.__direction == other.__direction
@@ -140,30 +179,19 @@ class SpeedTestExecutorDirection(object):
         assert type(other) == type(self)
         return self.__direction != other.__direction
     
-    def is_send(self):
-        return self.__direction == "send"
-    
-    def is_receive(self):
-        return self.__direction == "receive"
-    
-    def opposite(self):
-        if self.is_send():
-            return SpeedTestExecutorDirection("receive")
-        else:
-            return SpeedTestExecutorDirection("send")
-        
     def __str__(self):
         return self.__direction
     
     def __repr__(self):
         return self.__direction
+
 class SpeedTest(object):
     '''
     Base class for implementing a test
     '''
-    def __init__(self, name, friendly_name, send_executor, receive_executor, result_descriptors):
-        self.name = name
-        self.friendly_name = friendly_name
+    def __init__(self, test_id, friendly_name, send_executor, receive_executor, result_descriptors):
+        self.__test_id = test_id
+        self.__friendly_name = friendly_name
         
         assert issubclass(send_executor, SpeedTestExecutor)
         assert issubclass(receive_executor, SpeedTestExecutor)
@@ -173,9 +201,20 @@ class SpeedTest(object):
         self.result_descriptors = {}
         for desc in result_descriptors:
             self.result_descriptors[desc.name] = desc
-        
-    def initialize(self, local_ip, remote_ip):
-        pass
+
+    @property
+    def id(self):
+        '''
+        Get the id of Test
+        '''
+        return self.__test_id
+    
+    @property
+    def name(self):
+        '''
+        Get the name of the test
+        '''
+        return self.__friendly_name
     
     def get_executor(self, direction):
         '''
@@ -187,55 +226,127 @@ class SpeedTest(object):
             return self.__send_executor
         else:
             return self.__receive_executor
-    
-class SpeedTestResults(object):
+
+class SpeedTestExecution(object):
     '''
-    Results container of one speedtest execution 
+    Speedtest execution context
     '''
     
-    def __init__(self, test):
-        self.test = test
-        assert isinstance(self.test, SpeedTest)
+    def __init__(self, test, direction, execution_id = None):
+        '''
+        @param test The SpeedTest object to execute
+        @param direction The direction of test execution
+        @param execution_id If it is empty, a new one will be generated
+        '''
+        assert isinstance(test, SpeedTest)
+        assert isinstance(direction, SpeedTestExecutorDirection)
+        
+        self.__test = test
+        self.__direction = direction
         
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
-        self.values = None
         
-        sha1 = hashlib.sha1()
-        sha1.update( test.name + str(self.started_at) + str(random.random()))
-        self.test_execution_id = sha1.hexdigest()
+        # Generate execution id
+        if execution_id is None:
+            sha1 = hashlib.sha1()
+            sha1.update( test.id + str(self.started_at) + str(random.random()))
+            self.__execution_id = sha1.hexdigest()
+        else:
+            self.__execution_id = execution_id
     
-    def mark_test_finished(self, values):
+    @property
+    def id(self):
+        '''
+        Get the execution id of speedtest
+        '''
+        return self.__execution_id
+    
+    @property
+    def test(self):
+        '''
+        Get test object that was used for this execution
+        '''
+        return self.__test
+    
+    @property
+    def direction(self):
+        '''
+        Get direction that test was executed
+        '''
+        return self.__direction
+    
+    @property
+    def name(self):
+        '''
+        Get name of this execution
+        '''
+        return "{0} - {1}".format(self.test.name, str(self.direction))
+    
+    @property
+    def executor(self):
+        '''
+        Get executor for this execution
+        '''
+        return self.test.get_executor(self.direction)
+    
+    @property
+    def results(self):
+        '''
+        Get results of this execution
+        '''
+        return self.executor.results
+    
+    def mark_finished(self):
         '''
         Fill end timestamp and save results values in the object
         '''
-        assert isinstance(values, dict)
         self.ended_at = datetime.datetime.utcnow()
-        self.values = values
     
     def execution_time(self):
         return TimeUnit((self.ended_at - self.started_at).total_seconds())
     
     def __iter__(self):
-        return self.values.__iter__()
+        return self.results.__iter__()
 
-class SpeedTestMultiSampleResults(SpeedTestResults):
-    
-    def __init__(self, test):
-        super(SpeedTestMultiSampleResults, self).__init__(test)
-        del self.values
+
+class SpeedTestMultiSampleExecution(object):
+    '''
+    Pack of multiple SpeedTestExecution objects
+    '''
+    def __init__(self, test, direction):
+        assert isinstance(test, SpeedTest)
+        assert isinstance(direction, SpeedTestExecutorDirection)
+
+        self.__test = test
+        self.__direction = direction
         self.samples = []
-        
+
+    @property
+    def test(self):
+        '''
+        Get test object that was used for this execution
+        '''
+        return self.__test
+    
+    @property
+    def direction(self):
+        '''
+        Get direction that test was executed
+        '''
+        return self.__direction
+    
+    @property
+    def started_at(self):
+        '''
+        Get when was the first sample executed.
+        '''
+        return self.samples[0].started_at
+    
     def push_sample(self, sample):
-        assert isinstance(sample, SpeedTestResults)
+        assert isinstance(sample, SpeedTestExecution)
         self.samples.append(sample)
     
-    def mark_test_finished(self):
-        '''
-        Fill end timestamp and save __results in the object
-        '''
-        self.ended_at = datetime.datetime.utcnow()
-        
     def get_statistics(self):
         '''
         Calculate statistics on samples
@@ -245,7 +356,7 @@ class SpeedTestMultiSampleResults(SpeedTestResults):
             assert isinstance(result_entry, ResultEntryDescriptor)
             
             # Collect all samples raw values
-            data = utils.StatisticsArray([sample.values[result_entry.name].raw_value for sample in self.samples])
+            data = utils.StatisticsArray([sample.results[result_entry.name].raw_value for sample in self.samples])
             
             reduced_entry = {
                 'mean' :  result_entry.unit_type(data.mean()),
@@ -258,8 +369,16 @@ class SpeedTestMultiSampleResults(SpeedTestResults):
 
         return reduced
     
+    def execution_time(self):
+        '''
+        Get total execution time for all samples
+        '''
+        return sum([s.execution_time() for s in self.samples], TimeUnit(0))
+    
     def __iter__(self):
         return self.samples.__iter__()
+    
+    
     
 # A list with all enabled tests
 __enabled_tests = {}
@@ -271,7 +390,7 @@ def enable_test(test_class):
     global __enabled_tests
     if test_class not in __enabled_tests:
         test = test_class()
-        __enabled_tests[test.name] = test
+        __enabled_tests[test.id] = test
 
 def get_enabled_tests():
     '''

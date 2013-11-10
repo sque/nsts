@@ -15,59 +15,61 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
     def __init__(self, connection):
         super(NSTSConnectionServer, self).__init__(connection)
     
-    def serve_checktest(self, tests, name):
-        installed = tests.has_key(name)
+    def serve_checktest(self, tests, test_id):
+        installed = tests.has_key(test_id)
         supported = False
         if installed:
             supported = True # tests[name].server_executor.is_supported()
             logger.warning("FIX ME")
         self.send_msg("TESTINFO",{
-                    "name" : name,
+                    "test_id" : test_id,
                     "installed" : installed,
                     "supported" : supported,
                     "error" : "unknown"
                     })
 
-    def serve_run_test(self, test, direction):
-        logger.info("Client requested execution of test {0}.".format(test.friendly_name))
-        executor = test.get_executor(direction)
+    def serve_run_test(self, execution):
+        logger.info("Client requested execution of test {0}.".format(execution.name))
+        executor = execution.executor
         assert isinstance(executor, base.SpeedTestExecutor)
         
         # PREPARE
         try:
             executor.initialize(self)
-            logger.debug("Preparing test '{0}'.".format(test.name))
+            logger.debug("Preparing test '{0}'.".format(execution.name))
             executor.prepare()
             self.send_msg("OK")
             
             # RUN
-            logger.debug("Test '{0} started'.".format(test.name))
+            logger.debug("Test '{0} started'.".format(execution.name))
             executor.run()
                 
             # STOP
-            logger.debug("Test '{0}' finished.".format(test.name))
-            self.send_msg("TESTFINISHED", {"name", test.name})
+            logger.debug("Test '{0}' finished.".format(execution.name))
+            self.send_msg("TESTFINISHED", {"execution_id": execution.id})
             self.wait_msg_type("TESTFINISHED")
             
-            results = executor.get_results()
         except Exception, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise
         
         executor.cleanup()
-        return results
+        return execution
         
     def process_client_requets(self, tests):
         
         while(True):
             msg = self.wait_msg()
             
-            if msg.type_ == "CHECKTEST":
-                self.serve_checktest(tests, msg.params["name"])
-            elif msg.type_ == "PREPARETEST":
+            if msg.type == "CHECKTEST":
+                self.serve_checktest(tests, msg.params["test_id"])
+            elif msg.type == "PREPARETEST":
+                test = type(tests[msg.params['test_id']])()
                 direction = base.SpeedTestExecutorDirection(msg.params["direction"])
-                self.serve_run_test(tests[msg.params['name']].__class__(), direction)
+                execution_id = msg.params['execution_id']
+                execution = base.SpeedTestExecution(test, direction, execution_id)
+                self.serve_run_test(execution)
                 
 class NSTSServer(object):
     

@@ -3,7 +3,7 @@ Created on Nov 2, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
-import  pickle, base64, logging
+import  pickle, base64, logging, socket
 
 # PROTOCOL VERSION
 VERSION = 0
@@ -29,30 +29,55 @@ class Message(object):
     are exchanged on network
     '''
     def __init__(self, type_, params):
-        self.type_ = type_
-        self.params = params
+        assert isinstance(params, dict)
+        
+        self.__type = type_
+        self.__params = params
+    
+    @property
+    def type(self):
+        '''
+        Get the type of this message
+        '''
+        return self.__type
+    
+    @property
+    def params(self):
+        '''
+        Get parameters of this message
+        '''
+        return self.__params
+    
+    @params.setter
+    def params(self, params):
+        '''
+        Set parameters of this message
+        '''
+        assert isinstance(params, dict)
+        self.__params = params
+        return self.__params
     
     def encode(self):
         '''
         Encode this message to a plain text format
         '''
         encoded_params = base64.b64encode(pickle.dumps(self.params))
-        return "{0} {1}".format(self.type_, encoded_params)
+        return "{0} {1}".format(self.type, encoded_params)
     
     @staticmethod
     def decode(raw_msg):
         msg_parts = raw_msg.split(" ")
         try:
             msg_params = pickle.loads(base64.b64decode(msg_parts[1]))
-        except:
-            raise ProtocolError("Error decoding message parameters.")
+        except Exception, e:
+            raise ProtocolError("Error decoding message parameters." + str(e))
         return Message(msg_parts[0], msg_params)
     
     def __str__(self):
-        return "[{0} {1}]".format(self.type_, self.params)
+        return "[{0} {1}]".format(self.type, self.params)
      
     def __repr__(self):
-        return self.__str__
+        return self.__str__()
     
     
 class MessageStream(object):
@@ -63,10 +88,17 @@ class MessageStream(object):
     
     MSG_DELIMITER = "\n"
     
-    def __init__(self, connection):
-        self.connection = connection
+    def __init__(self, socket_):
+        assert isinstance(socket_, socket.socket)
+        self.__socket = socket_
         self.receiver_buffer = ''
     
+    @property
+    def socket(self):
+        '''
+        Get network socket used for this stream
+        '''
+        return self.__socket
     
     def __buffer_pop_msg(self):
         '''
@@ -109,7 +141,7 @@ class MessageStream(object):
         
         # Read new data
         while(True):
-            data = self.connection.recv(1024)
+            data = self.socket.recv(1024)
             if not data:
                 raise ConnectionClosedException()
             self.__buffer_push_data(data)
@@ -119,12 +151,17 @@ class MessageStream(object):
                 return msg
 
     def wait_msg_type(self, expected_type):
+        '''
+        Expect a message from the connection(blocking)
+        @param expected_type The type of the expected message
+        @raise ProtocolError if another message arrives
+        '''
         logger.debug("Waiting for '{0}' message".format(expected_type))
         msg = self.wait_msg()
         
-        if msg.type_ != expected_type:
-            logger.debug("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type_))
-            raise ProtocolError("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type_))
+        if msg.type != expected_type:
+            logger.debug("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type))
+            raise ProtocolError("Waiting for '{0}' message, but '{1}' arrived".format(expected_type, msg.type))
         return msg
     
     def send_msg(self, msg_type, msg_params = {}):
@@ -132,7 +169,7 @@ class MessageStream(object):
         Send a message to the other end.
         '''
         msg = Message(msg_type, msg_params)
-        self.connection.send(msg.encode() + MessageStream.MSG_DELIMITER)
+        self.socket.send(msg.encode() + MessageStream.MSG_DELIMITER)
         
 
 class NSTSConnectionBase(MessageStream):
@@ -140,32 +177,46 @@ class NSTSConnectionBase(MessageStream):
     Implement NSTS connection base
     '''
     
-    def __init__(self, connection):
-        super(NSTSConnectionBase, self).__init__(connection)
-        self.remote_ip = None
-        self.local_ip = None
-        
-    def handshake(self, remote_ip):
+    def __init__(self, socket):
+        super(NSTSConnectionBase, self).__init__(socket)
+        self.__remote_addr = None
+        self.__local_addr = None
+    
+    @property
+    def remote_addr(self):
+        '''
+        Get public address of remote host
+        '''
+        return self.__remote_addr
+
+    @property
+    def local_addr(self):
+        '''
+        Get public address of localhost
+        '''
+        return self.__local_addr
+    
+    def handshake(self, remote_addr):
         '''
         Handshake between two peers.
         In this process, they will validate version compatibility
         and will exchange needed information.
         '''
-        self.remote_ip = remote_ip
-        self.send_msg('HELLO', {"version" : VERSION, "remote_ip": remote_ip})
+        self.__remote_addr = remote_addr
+        self.send_msg('HELLO', {"version" : VERSION, "remote_addr": remote_addr})
         response = self.wait_msg_type('HELLO')
         
         if response.params['version'] != VERSION:
             raise ProtocolError("Incompatible version")
-        self.local_ip = response.params['remote_ip']
+        self.__local_addr = response.params['remote_addr']
     
-    def assure_test(self, testname):
+    def assure_test(self, test_id):
         '''
         Request other side to assure that a test is available
         '''
-        self.send_msg("CHECKTEST", {"name" :testname})
+        self.send_msg("CHECKTEST", {"test_id" :test_id})
         test_info = self.wait_msg_type("TESTINFO")
-        assert test_info.params["name"] == testname
+        assert test_info.params["test_id"] == test_id
         if not (test_info.params["installed"] and test_info.params["supported"]):
             raise ProtocolError("Test {0} is not supported on the other side".format(test_info.error))
 

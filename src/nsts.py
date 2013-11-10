@@ -50,8 +50,8 @@ if args.list_tests:
     
     for test in base.get_enabled_tests().values():
         check_mark = lambda b : 'X' if b else '-' 
-        g.add_row([test.name,
-                test.friendly_name,
+        g.add_row([test.id,
+                test.name,
                 'X','X'])#check_mark(test.client_executor.is_supported()),
                # check_mark(test.server_executor.is_supported())])
     print g

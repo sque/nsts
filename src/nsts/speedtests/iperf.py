@@ -24,9 +24,9 @@ class IperfExecutorSender(SubProcessExecutorBase):
         self.store_result('transfer_rate', units.BitRateUnit(float(output.split(',')[8])))
         
     def run(self):
-        self.send_msg("STARTSERVER",  self.server_arguments)
+        self.send_msg("STARTSERVER",  {"server_arguments" : self.server_arguments})
         self.wait_msg_type('OK')
-        self.execute_subprocess("-c", self.connection.remote_ip, *self.client_arguments)
+        self.execute_subprocess("-c", self.connection.remote_addr, *self.client_arguments)
         
         while self.is_subprocess_running():
             time.sleep(0.2)
@@ -49,7 +49,7 @@ class IperfExecutorReceiver(SubProcessExecutorBase):
     
     def run(self):
         msg = self.wait_msg_type("STARTSERVER")
-        self.execute_subprocess(*msg.params)
+        self.execute_subprocess(*msg.params['server_arguments'])
         time.sleep(0.2)
         self.send_msg("OK")
 

@@ -5,7 +5,7 @@ Created on Nov 6, 2013
 '''
 import datetime
 from nsts import core
-from nsts.speedtests.base import SpeedTestMultiSampleResults
+from nsts.speedtests.base import SpeedTestMultiSampleExecution
 from grid import  Grid
 
 class BasicFormatter(object):
@@ -26,13 +26,13 @@ class BasicFormatter(object):
         print " Activated Tests: {0}".format(tests)
         
     def push_test_results(self, test_samples):
-        assert isinstance(test_samples, SpeedTestMultiSampleResults)
+        assert isinstance(test_samples, SpeedTestMultiSampleExecution)
         
         self.tests_samples[test_samples.test.name] = test_samples
             
         # Show table of analytic results
         print ""
-        print test_samples.test.friendly_name
+        print test_samples.test.name
         print "samples: {0} | took: {1} | started: {2}".format(
                 len(test_samples.samples),
                 test_samples.execution_time().optimal_combined_scale_str(),
@@ -46,7 +46,7 @@ class BasicFormatter(object):
         # Push data
         for i, sample in enumerate(test_samples):
             row =[i+1, sample.execution_time()]
-            row.extend(sample.values.values())
+            row.extend(sample.results.values())
             
             grid.add_row(row)
         print grid
@@ -60,7 +60,7 @@ class BasicFormatter(object):
         
         for samples in self.tests_samples.values():
             print ""
-            print samples.test.friendly_name
+            print samples.test.name
             grid = Grid(self.width)
             grid.add_column('Metric', width='fit')
             grid.add_column('Mean', width='equal')

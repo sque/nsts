@@ -15,43 +15,45 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
     def __init__(self, connection):
         super(NSTSConnectionClient, self).__init__(connection)
     
-    def run_test(self, test, direction):
+    def run_test(self, execution):
         """
         Execute a complete test on get results back
         """
-        assert isinstance(direction, base.SpeedTestExecutorDirection)
-        logger.info("Starting test '{0}'".format(test.friendly_name))
+        assert isinstance(execution, base.SpeedTestExecution)
+        logger.info("Starting test '{0}'".format(execution.name))
 
         # ASSURE
-        logger.debug("Checking test '{0}'".format(test.name))
-        executor = test.get_executor(direction)
-        self.assure_test(test.name)
-        if not executor.is_supported():
-            logger.info("Test '{0}' is not supported.".format(test.name))
-            raise proto.ProtocolError("Test {0} is not supported locally".format(test.name))
-        
+        logger.debug("Checking test '{0}'".format(execution.name))
+        executor = execution.executor
         assert isinstance(executor, base.SpeedTestExecutor)
+        self.assure_test(execution.test.id)
+        if not executor.is_supported():
+            logger.info("Test '{0}' is not supported.".format(execution.name))
+            raise proto.ProtocolError("Test {0} is not supported locally".format(execution.name))
         
         # PREPARE
         try:
             
             executor.initialize(self)
-            logger.debug("Preparing test '{0}'.".format(test.name))
-            self.send_msg("PREPARETEST", {"name" : test.name, "direction" : str(direction.opposite())})
+            logger.debug("Preparing execution '{0}'.".format(execution.name))
+            self.send_msg("PREPARETEST", {
+                        "test_id" : execution.test.id,
+                        "direction" : str(execution.direction.opposite()),
+                        'execution_id' : execution.id
+                        })
             self.wait_msg_type("OK")
             executor.prepare()
             
             # RUN
-            results = base.SpeedTestResults(test)
-            logger.debug("Test '{0} started'.".format(test.name))
+            logger.debug("Test '{0} started'.".format(execution.name))
             executor.run()
                 
             # STOP
-            logger.debug("Test '{0}' finished.".format(test.name))
-            self.send_msg("TESTFINISHED", {"name": test.name})
+            logger.debug("Test '{0}' finished.".format(execution.name))
+            self.send_msg("TESTFINISHED", {"execution_id": execution.id})
             self.wait_msg_type("TESTFINISHED")
             
-            results.mark_test_finished(executor.get_results())
+            execution.mark_finished()
         except Exception, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
@@ -59,8 +61,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
         
         #CLEAN UP
         executor.cleanup()
-        
-        return results
+        return execution
     
 class NSTSClient(object):
     
@@ -91,19 +92,19 @@ class NSTSClient(object):
         '''
         Run a test and return results
         '''
-        return self.connection.run_test(self.tests[test_id].__class__(), direction)
+        ctx = base.SpeedTestExecution(type(self.tests[test_id])(), direction)
+        return self.connection.run_test(ctx)
     
     
     def multirun_test(self, test_id, direction, times, interval_secs = None):
         '''
         Run a test multiple times between intervals and return results
         '''
-        results = base.SpeedTestMultiSampleResults(base.get_enabled_test(test_id))
+        results = base.SpeedTestMultiSampleExecution(base.get_enabled_test(test_id), direction)
         
         for i in range(0, times):
-            sample_result = self.run_test(test_id, direction)
-            results.push_sample(sample_result)
+            execution = self.run_test(test_id, direction)
+            results.push_sample(execution)
             if i < times -1 and interval_secs is not None:
                 time.sleep(interval_secs)
-        results.mark_test_finished()
         return results
