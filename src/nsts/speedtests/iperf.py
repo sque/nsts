@@ -72,11 +72,11 @@ class IperfJitterExecutorSender(IperfExecutorSender):
         
         #sent = output[0].split(',')
         received = output[1].split(',')
-        self.store_result('transfer_rate', units.BitRateUnit(float(received[8])))
-        self.store_result('jitter', units.TimeUnit(float(received[9])))
-        self.store_result('lost_packets', units.PacketUnit(float(received[10])))
-        self.store_result('total_packets', units.PacketUnit(float(received[11])))
-        self.store_result('percentage_lost', units.PercentageUnit(float(received[12])))
+        self.store_result('transfer_rate', units.BitRateUnit(received[8]))
+        self.store_result('jitter', units.TimeUnit(received[9] + "ms"))
+        self.store_result('lost_packets', units.PacketUnit(received[10]))
+        self.store_result('total_packets', units.PacketUnit(received[11]))
+        self.store_result('percentage_lost', units.PercentageUnit(received[12]))
 
 class IperfTCP(base.SpeedTest):
     
@@ -84,7 +84,7 @@ class IperfTCP(base.SpeedTest):
         descriptors = [
                 base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
         ]
-        super(IperfTCP, self).__init__("iperftcp", "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver, descriptors)
+        super(IperfTCP, self).__init__("iperf_tcp", "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver, descriptors)
 
 class IperfJitter(base.SpeedTest):
     
@@ -96,7 +96,7 @@ class IperfJitter(base.SpeedTest):
                 base.ResultEntryDescriptor("total_packets", "Total Pck", units.PacketUnit),
                 base.ResultEntryDescriptor("percentage_lost", "Lost Pck %", units.PercentageUnit)
         ]
-        super(IperfJitter, self).__init__("iperfjitter", "Jitter (iperf)", IperfJitterExecutorSender, IperfExecutorReceiver, descriptors)
+        super(IperfJitter, self).__init__("iperf_jitter", "Jitter (iperf)", IperfJitterExecutorSender, IperfExecutorReceiver, descriptors)
 
 base.enable_test(IperfTCP)
 base.enable_test(IperfJitter)

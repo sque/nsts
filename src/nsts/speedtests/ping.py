@@ -26,7 +26,9 @@ class PingExecutorSender(SubProcessExecutorBase):
             raise base.SpeedTestRuntimeError("Unknown error, ping failed to complete.")
         
         values = lines[-2].split()[3].split("/")
-        self.store_result('rtt', units.TimeUnit(float(values[0])))
+        unit_name = lines[-2].split()[4]
+        rtt = units.TimeUnit(values[0] + " " +unit_name)
+        self.store_result('rtt', rtt)
         
     def run(self):
         self.execute_subprocess("-c", "1", self.connection.remote_addr)

@@ -46,7 +46,6 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         extra_arguments = list(self.apache_basic_options)
         extra_arguments.append("PidFile {0}".format(self.pid_file))
         extra_arguments.append('LogFormat "%h %l %u %t \\"%r\\" %>s %b \\"%{Referer}i\\" \\"%{User-agent}i\\"" combined')
-        print extra_arguments
         extra_arguments.append("ErrorLog {0}".format(self.error_log_file))
         extra_arguments.append("CustomLog {0} combined".format(self.access_log_file))
         extra_arguments.append("DocumentRoot {0}".format(self.document_root))
@@ -60,7 +59,6 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         # Start apache
         self.logger.debug("Starting apache server")
         self.execute_subprocess(*apache_arguments)
-        print self.get_subprocess_output()
         
         # Wait for apache to begin
         while self.is_subprocess_running():
@@ -174,8 +172,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
         if not match:
             raise base.SpeedTestRuntimeError("Cannot parse wget output.")
         
-        speed = units.ByteRateUnit()
-        speed.parse(match.group(1))
+        speed = units.ByteRateUnit(match.group(1))
         return speed
         
     def url_for(self, filename):
