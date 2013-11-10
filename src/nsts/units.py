@@ -11,6 +11,14 @@ class ParseError(RuntimeError):
     Error when parsing a unit
     '''
 
+class UnknownMangitudeError(ParseError):
+    '''
+    Error raised when an unknown magnitude was requested
+    '''
+    def __init__(self, magnitude, unit):
+        super(UnknownMangitudeError, self).__init__(
+                "Unknown magnitude '{0}' for unit '{1}'".format(magnitude, unit.name))
+
 class Unit(object):
     '''
     Base class for defining a measurement unit
@@ -24,7 +32,7 @@ class Unit(object):
         '''
 
         self.name = name
-        self.raw_value = initial_value
+        
         self.magnitudes = magnitudes
         self.alt_magnitude_names = alt_magnitude_names
         self.magnitudes_map = {}
@@ -39,15 +47,47 @@ class Unit(object):
         if self.default_magnitude is None:
             raise LookupError("A magnitude of order 1 is mandatory.")
         
+        # Check if parsing is needed
+        if isinstance(initial_value, basestring):
+            self.__parse(initial_value)
+        else:
+            self.raw_value = initial_value
+
+    def __magnitude_order(self, magn_search):
+        '''
+        Get the magnitude order based on name
+        '''
+        for magnitude,order in self.magnitudes_map.iteritems():
+            if magn_search == magnitude \
+                or (self.alt_magnitude_names.has_key(magnitude) 
+                    and magn_search in self.alt_magnitude_names[magnitude]):
+                return order
+        raise UnknownMangitudeError(magn_search, self)
     
+    def __parse(self, string):
+        '''
+        Check objects value by parsing a string formatted expression
+        ''' 
+        pattern = re.compile('^\s*(\d+(?:\.\d*)?)\s*([^\s]*)\s*$')
+        match = pattern.match(string)
+        if not match:
+            raise ParseError("Cannot parse '{0}' as {1} unit.".format(
+                    string,
+                    self.name))
+        
+        quantity = float(match.group(1))
+        unit_type = match.group(2)
+        if not unit_type:
+            unit_type = self.default_magnitude
+
+        self.raw_value = self.__magnitude_order(unit_type) * quantity
+        
+        
     def scale(self, magnitude):
         '''
         Scale value to a different magnitude
         '''
-        if magnitude not in self.magnitudes_map.keys():
-            raise LookupError("Unknown magnitude '{0}'".format(magnitude))
-        
-        return float(self.raw_value) / self.magnitudes_map[magnitude]
+        return float(self.raw_value) / self.__magnitude_order(magnitude)
 
     def optimal_scale(self):
         '''
@@ -64,7 +104,7 @@ class Unit(object):
         # Try to increment one order each time
         best_magnitude = self.default_magnitude
         for magnitude in reversed(self.magnitudes):
-            if self.scale(magnitude[1]) > 1:
+            if self.scale(magnitude[1]) >= 1:
                 best_magnitude = magnitude[1]
                 break;
         
@@ -94,25 +134,6 @@ class Unit(object):
         if not scales:
             scales.append((value, self.magnitudes[0][1]))
         return scales
-    
-    def parse(self, string):
-        '''
-        Check objects value by parsing a string formatted expression
-        ''' 
-        pattern = re.compile('^\s*([0-9\.]+)\s*([^\s]+)\s*$')
-        match = pattern.match(string)
-        if not match:
-            raise ParseError("Error parsing '{0}'".format(string))
-        
-        quantity = float(match.group(1))
-        unit_type = match.group(2)
-        for magnitude,order in self.magnitudes_map.iteritems():
-            if unit_type == magnitude or unit_type in self.alt_magnitude_names[magnitude]:
-                self.raw_value = order * quantity
-                return # Found
-                
-        
-        raise ParseError("Error parsing '{0}'".format(string))
 
     def optimal_scale_str(self):
         '''
@@ -181,11 +202,11 @@ class BitRateUnit(Unit):
                       (10**3, 'kbit/s'),
                       (10**6, 'Mbit/s'),
                       (10**9, 'Gbit/s'),
-                      (10**11,'Tbit/s')]
+                      (10**12,'Tbit/s')]
         
         alt_magnitude_names = {
-                'bits/s' : ['b/s', 'bps'],
-                'kbit/s' : ['Kbit/s', 'Kbits/s', 'Kb/s', 'kbps'],
+                'bits/s' : ['bit/s', 'b/s', 'bps'],
+                'kbit/s' : ['Kbit/s', 'Kbits/s', 'Kb/s', 'Kbps'],
                 'Mbit/s' : ['Mbits/s', 'Mb/s', 'Mbps'],
                 'Gbit/s' : ['Gbits/s', 'Gb/s', 'Gbps'],
                 'Tbit/s' : ['Tbits/s', 'Tb/s', 'Tbps'],
@@ -204,11 +225,11 @@ class ByteRateUnit(Unit):
                       (10**3, 'KByte/s'),
                       (10**6, 'MByte/s'),
                       (10**9, 'GByte/s'),
-                      (10**11,'TByte/s')]
+                      (10**12,'TByte/s')]
         
         alt_magnitude_names = {
                 'bytes/s' : ['Bytes/s', 'B/s', 'Bps'],
-                'KByte/s' : ['KByte/s', 'KBytes/s', 'KB/s', 'kBps'],
+                'KByte/s' : ['KByte/s', 'KBytes/s', 'KB/s', 'kBps', 'KBps'],
                 'MByte/s' : ['MBytes/s', 'MB/s', 'MBps'],
                 'GByte/s' : ['GBytes/s', 'GB/s', 'GBps'],
                 'TByte/s' : ['TBytes/s', 'TB/s', 'TBps'],
@@ -231,6 +252,7 @@ class TimeUnit(Unit):
                       (60,       'min'),
                       (3600,     'hour'),
                       (3600*24,  'day'),
+                      (3600*24*7,'week'),
                       ]
         super(TimeUnit, self).__init__("Time", initial_value, magnitudes)
 
@@ -249,126 +271,3 @@ class PacketUnit(Unit):
                       (1 , 'p')
                      ]
         super(PacketUnit, self).__init__("Packets", initial_value, magnitudes)
-
-# Example usage
-if __name__ == '__main__':
-    times = [TimeUnit(),
-             TimeUnit(0),
-             TimeUnit(65),
-             TimeUnit(1553.43),
-             TimeUnit(3660.5),
-             TimeUnit(0.020),
-             TimeUnit(0.0001)
-             ]
-    print "Optimal Scale"
-    # Time
-    for time in times:
-        print "Time| raw: {0}, optimal : {1}, combined: {2}, str: '{3}'".format(
-                    time.raw_value,
-                    time.optimal_scale(),
-                    time.optimal_combined_scale(),
-                    str(time))
-    
-    rates = [BitRateUnit(),
-             BitRateUnit(0),
-             BitRateUnit(1000),
-             BitRateUnit(1024),
-             BitRateUnit(2000000)
-             ]
-    # Time
-    for rate in rates:
-        print "Rates| raw: {0}, optimal : {1}, combined: {2}, str: '{3}'".format(
-                    rate.raw_value,
-                    rate.optimal_scale(),
-                    rate.optimal_combined_scale(),
-                    str(rate))
-
-    # Percentage
-    print PercentageUnit()
-    print PercentageUnit(90)
-    print PercentageUnit(11.1)
-    
-    print PacketUnit()
-    print PacketUnit(12)
-    print PacketUnit(14)
-    
-    print "UNIT TESTING"
-    print "------------------------------------------"
-    print "Parsing"
-    bit_tests = [
-                ("1bps", BitRateUnit(1)),
-                ("40 bps", BitRateUnit(40)),
-                ("47 bits/s", BitRateUnit(47)),
-                ("12.67 Gbits/s", BitRateUnit(12.67*1000*1000*1000)),
-                ("12.32 Gb/s", BitRateUnit(12.32*1000*1000*1000)),
-                ("12.543 Gbps", BitRateUnit(12.543*1000*1000*1000))
-            ]
-    
-    for btest in bit_tests:
-        b = BitRateUnit()
-        b.parse(btest[0])
-        assert b == btest[1]
-        print btest[0], b, btest[1] 
-    
-    try:
-        b.parse("12.543 dummy")
-    except:
-        print "Caught exception as expected"
-        
-    
-    byte_tests = [
-                ("1Bps", ByteRateUnit(1)),
-                ("40 Bps", ByteRateUnit(40)),
-                ("47 Bytes/s", ByteRateUnit(47)),
-                ("12.67 GBytes/s", ByteRateUnit(12.67*1000*1000*1000)),
-                ("12.32 GB/s", ByteRateUnit(12.32*1000*1000*1000)),
-                ("12.543 GBps", ByteRateUnit(12.543*1000*1000*1000))
-            ]
-    
-    for btest in byte_tests:
-        b = ByteRateUnit()
-        b.parse(btest[0])
-        assert b == btest[1]
-        print btest[0], b, btest[1] 
-    
-    try:
-        b.parse("12.543 dummy")
-    except:
-        print "Caught exception as expected"
-        
-        
-    print "\nComparisons"
-    assert not BitRateUnit(0)
-    assert BitRateUnit(1)
-    
-    assert not BitRateUnit(1) == BitRateUnit(0)
-    assert BitRateUnit(1) != BitRateUnit(0)
-    assert not BitRateUnit(1) < BitRateUnit(0)
-    assert not BitRateUnit(1) <= BitRateUnit(0)
-    assert BitRateUnit(1) > BitRateUnit(0)
-    assert BitRateUnit(1) >= BitRateUnit(0)
-    
-    assert BitRateUnit(1) == BitRateUnit(1)
-    assert not BitRateUnit(1) != BitRateUnit(1)
-    assert not BitRateUnit(1) < BitRateUnit(1)
-    assert BitRateUnit(1) <= BitRateUnit(1)
-    assert not BitRateUnit(1) > BitRateUnit(1)
-    assert BitRateUnit(1) >= BitRateUnit(1)
-    
-    assert not BitRateUnit(0) == BitRateUnit(1)
-    assert BitRateUnit(0) != BitRateUnit(1)
-    assert BitRateUnit(0) < BitRateUnit(1)
-    assert BitRateUnit(0) <= BitRateUnit(1)
-    assert not BitRateUnit(0) > BitRateUnit(1)
-    assert not BitRateUnit(0) >= BitRateUnit(1)
-    print "Passed."
-
-    print "\nArithmetic operations"
-    a = BitRateUnit(4.5)
-    b = BitRateUnit(1.2)
-    c = BitRateUnit(5.7)
-    print "a + b = c => {0} + {1} = {2}".format(a, b, a+b)
-    assert a+b == c
-    c = BitRateUnit(3.3)
-    print "a - b = c => {0} - {1} = {2}".format(a, b, a-c)
-    assert a-b == c
