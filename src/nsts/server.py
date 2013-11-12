@@ -6,7 +6,8 @@ Created on Nov 4, 2013
 
 import socket, sys, logging
 from nsts import  proto
-from nsts.speedtests import base
+from nsts.speedtests.base import SpeedTestExecution, ExecutionDirection
+from nsts.speedtests import registry
 
 logger = logging.getLogger("proto")
 
@@ -15,8 +16,8 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
     def __init__(self, connection):
         super(NSTSConnectionServer, self).__init__(connection)
     
-    def serve_checktest(self, tests, test_id):
-        installed = tests.has_key(test_id)
+    def serve_checktest(self, test_id):
+        installed = registry.is_registered(test_id)
         supported = False
         if installed:
             supported = True # tests[name].server_executor.is_supported()
@@ -31,7 +32,6 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
     def serve_run_test(self, execution):
         logger.info("Client requested execution of test {0}.".format(execution.name))
         executor = execution.executor
-        assert isinstance(executor, base.SpeedTestExecutor)
         
         # PREPARE
         try:
@@ -57,18 +57,18 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
         executor.cleanup()
         return execution
         
-    def process_client_requets(self, tests):
+    def process_client_requets(self):
         
         while(True):
             msg = self.wait_msg()
             
             if msg.type == "CHECKTEST":
-                self.serve_checktest(tests, msg.params["test_id"])
+                self.serve_checktest(msg.params["test_id"])
             elif msg.type == "PREPARETEST":
-                test = type(tests[msg.params['test_id']])()
-                direction = base.SpeedTestExecutorDirection(msg.params["direction"])
+                test = registry.get_test(msg.params['test_id'])
+                direction = ExecutionDirection(msg.params["direction"])
                 execution_id = msg.params['execution_id']
-                execution = base.SpeedTestExecution(test, direction, execution_id)
+                execution = SpeedTestExecution(test, direction, execution_id)
                 self.serve_run_test(execution)
                 
 class NSTSServer(object):
@@ -76,7 +76,6 @@ class NSTSServer(object):
     def __init__(self, host = None , port = None):
         self.host = '' if host is None else host
         self.port = 26532 if port is None else port
-        self.tests = base.get_enabled_tests()
 
     def serve(self):
         ''' Start the server and start serving
@@ -101,7 +100,7 @@ class NSTSServer(object):
             try:
                 connection = NSTSConnectionServer(socket_conn)
                 connection.handshake(socket_addr[0])
-                connection.process_client_requets(self.tests)
+                connection.process_client_requets()
             except (proto.ConnectionClosedException, socket.error), msg:
                 print "Client disconnected."
                 

@@ -82,7 +82,7 @@ class IperfTCP(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
+                base.ResultValueDescriptor("transfer_rate", "Transfer Rate", units.BitRateUnit)
         ]
         super(IperfTCP, self).__init__("iperf_tcp", "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver, descriptors)
 
@@ -90,11 +90,11 @@ class IperfJitter(base.SpeedTest):
     
     def __init__(self):
         descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "Trans. Rate", units.BitRateUnit),
-                base.ResultEntryDescriptor("jitter", "Jitter", units.TimeUnit),
-                base.ResultEntryDescriptor("lost_packets", "Lost Pck", units.PacketUnit),
-                base.ResultEntryDescriptor("total_packets", "Total Pck", units.PacketUnit),
-                base.ResultEntryDescriptor("percentage_lost", "Lost Pck %", units.PercentageUnit)
+                base.ResultValueDescriptor("transfer_rate", "Trans. Rate", units.BitRateUnit),
+                base.ResultValueDescriptor("jitter", "Jitter", units.TimeUnit),
+                base.ResultValueDescriptor("lost_packets", "Lost Pck", units.PacketUnit),
+                base.ResultValueDescriptor("total_packets", "Total Pck", units.PacketUnit),
+                base.ResultValueDescriptor("percentage_lost", "Lost Pck %", units.PercentageUnit)
         ]
         super(IperfJitter, self).__init__("iperf_jitter", "Jitter (iperf)", IperfJitterExecutorSender, IperfExecutorReceiver, descriptors)
 

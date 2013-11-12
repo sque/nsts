@@ -5,14 +5,12 @@ Created on Nov 4, 2013
 '''
 
 import random
-import base
+from base import SpeedTestExecutor, SpeedTestDescriptor
+from registry import register
 from nsts import units
 
 
-class DummyTestSender(base.SpeedTestExecutor):
-    
-    def __init__(self, owner):
-        super(DummyTestSender, self).__init__(owner)
+class DummyTestSender(SpeedTestExecutor):
         
     def is_supported(self):
         return True
@@ -29,11 +27,8 @@ class DummyTestSender(base.SpeedTestExecutor):
     def cleanup(self):
         pass
     
-class DummyTestReceiver(base.SpeedTestExecutor):
+class DummyTestReceiver(SpeedTestExecutor):
     
-    def __init__(self, owner):
-        super(DummyTestReceiver, self).__init__(owner)
-        
     def is_supported(self):
         return True
     
@@ -46,14 +41,14 @@ class DummyTestReceiver(base.SpeedTestExecutor):
     def cleanup(self):
         return True
     
-class DummyTest(base.SpeedTest):
+class DummyTest(SpeedTestDescriptor):
     def __init__(self):
-        descriptors = [
-            base.ResultEntryDescriptor('random_transfer', 'Random Transfer', units.BitRateUnit),
-            base.ResultEntryDescriptor('random_time', 'Random Time', units.TimeUnit)
-            ]
-        super(DummyTest, self).__init__("dummy", "Dummy SpeedTest", DummyTestSender, DummyTestReceiver, descriptors)
+        super(DummyTest, self).__init__(
+                "dummy",
+                "Dummy SpeedTest",
+                DummyTestSender, DummyTestReceiver)
+        
+        self.add_result('random_transfer', 'Random Transfer', units.BitRateUnit)
+        self.add_result('random_time', 'Random Time', units.TimeUnit)
 
-    
-
-base.enable_test(DummyTest)
+register(DummyTest())

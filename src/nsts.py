@@ -9,14 +9,15 @@ import logging, argparse, sys
 from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.speedtests import *
+from nsts.speedtests import registry
 from nsts.io import formatters
 from nsts.io.grid import Grid
 
 def parse_test_arg(name):
     if not "-" in name:
         return [
-                (name, base.SpeedTestExecutorDirection("send")),
-                (name, base.SpeedTestExecutorDirection("receive"))
+                (name, base.ExecutionDirection("send")),
+                (name, base.ExecutionDirection("receive"))
                 ]
     parts = name.split("-")
     test_name = parts[0]
@@ -24,9 +25,9 @@ def parse_test_arg(name):
         raise RuntimeError("Test directive can be 'r' or 's'.")
     
     if parts[1] == 's':
-        test_dir = base.SpeedTestExecutorDirection("send")
+        test_dir = base.ExecutionDirection("send")
     else:
-        test_dir = base.SpeedTestExecutorDirection("receive")
+        test_dir = base.ExecutionDirection("receive")
     
     return [(test_name, test_dir)]
     
@@ -66,7 +67,7 @@ if args.list_tests:
     g.add_column('Client', width = 'fit', align='center')
     g.add_column('Server', width = 'fit', align='center')
     
-    for test in base.get_enabled_tests().values():
+    for test in registry.get_all():
         check_mark = lambda b : 'X' if b else '-' 
         g.add_row([test.id,
                 test.name,
@@ -93,7 +94,7 @@ else:
         tests.extend(parse_test_arg(test_arg))
         
     for test in tests:
-        if not base.is_test_enabled(test[0]):
+        if not registry.is_registered(test[0]):
             print "Test '{0}' is unknown.".format(test[0])
             sys.exit(1)
             

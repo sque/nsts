@@ -6,7 +6,8 @@ Created on Nov 4, 2013
 
 import socket, sys, logging, time
 import proto
-from nsts.speedtests import base
+from nsts.speedtests import base, registry
+
 
 logger = logging.getLogger("proto")
 
@@ -69,7 +70,6 @@ class NSTSClient(object):
         self.remote_host = remote_host
         self.remote_port = 26532 if remote_port is None else remote_port
         self.connection = None
-        self.tests = base.get_enabled_tests()
         
     def connect(self):
         '''
@@ -92,7 +92,7 @@ class NSTSClient(object):
         '''
         Run a test and return results
         '''
-        ctx = base.SpeedTestExecution(type(self.tests[test_id])(), direction)
+        ctx = base.SpeedTestExecution(registry.get_test(test_id), direction)
         return self.connection.run_test(ctx)
     
     
@@ -100,7 +100,7 @@ class NSTSClient(object):
         '''
         Run a test multiple times between intervals and return results
         '''
-        results = base.SpeedTestMultiSampleExecution(base.get_enabled_test(test_id), direction)
+        results = base.SpeedTestMultiSampleExecution(registry.get_test(test_id), direction)
         
         for i in range(0, times):
             execution = self.run_test(test_id, direction)

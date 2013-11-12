@@ -40,8 +40,8 @@ class BasicFormatter(object):
         grid = Grid(self.width)
         grid.add_column('', width='fit')
         grid.add_column('Took', width='fit')
-        for result_entry in test_samples.test.result_descriptors.values():
-            grid.add_column(result_entry.friendly_name)
+        for result_entry in test_samples.test.supported_results.values():
+            grid.add_column(result_entry.name)
             
         # Push data
         for i, sample in enumerate(test_samples):

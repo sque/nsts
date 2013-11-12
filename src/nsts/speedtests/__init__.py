@@ -1,1 +1,1 @@
-__all__ = ["base", "dummy", "iperf", "ping", "apache"]
+__all__ = ["base", "dummy"]

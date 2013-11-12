@@ -5,8 +5,9 @@ Created on Nov 2, 2013
 '''
 
 import logging, datetime, hashlib, random
+from collections import OrderedDict
 from nsts import proto, utils
-from nsts.units import TimeUnit
+from nsts.units import TimeUnit, Unit
 
 # Module logger
 logger = logging.getLogger("test")
@@ -16,7 +17,126 @@ class SpeedTestRuntimeError(RuntimeError):
     Exception to be raised by test when
     it was unable to execute it.
     '''
+
+class ResultValueDescriptor(object):
+    '''
+    Descriptor of test result entry
+    '''
+    def __init__(self, result_id, name, unit_type):
+        if not issubclass(unit_type, Unit):
+            raise TypeError("unit_type must be of units.Unit")
+
+        self.__id = result_id
+        self.__name = name
+        self.__unit_type = unit_type
+
+    @property
+    def id(self):
+        '''
+        Get the id of this result
+        '''
+        return self.__id
     
+    @property
+    def name(self):
+        '''
+        Get a friendly name of this entry
+        '''
+        return self.__name
+    
+    @property
+    def unit_type(self):
+        '''
+        Get the unit type of this entry
+        '''
+        return self.__unit_type
+
+class OptionValueDescriptor(object):
+    '''
+    Descriptor of test option value
+    '''
+    def __init__(self, option_id, help, type):
+        assert isinstance(help, basestring)
+        self.__id = str(option_id)
+        self.__help = help
+        self.__type = type
+    
+    @property
+    def id(self):
+        '''
+        Get the id of this option
+        '''
+        return self.__id
+    
+    @property
+    def help(self):
+        '''
+        Get a help string, describing usage of this option
+        '''
+        return self.__help
+    
+    @property
+    def type(self):
+        '''
+        Get the type of this option
+        '''
+        return self.__type
+
+
+class ExecutionDirection(object):
+    '''
+    Encapsulates the logic of data direction in execution.
+    '''
+    
+    def __init__(self, direction):
+        '''
+        Create an initialized object
+        @param direction A string 'send','s',receive' or 'r' for the
+        state of this object.
+        '''
+        if direction in ['send', 's']:
+            self.__direction = 'send'
+        elif direction in ['receive', 'r']:
+            self.__direction = 'receive'
+        else:
+            raise ValueError("Direction '{0}' is not a valid direction.".format(direction))
+    
+    def is_send(self):
+        '''
+        Check if it is sending direction
+        '''
+        return self.__direction == "send"
+    
+    def is_receive(self):
+        '''
+        Check if it is receiving direction
+        '''
+        return self.__direction == "receive"
+    
+    def opposite(self):
+        '''
+        Get ExecutionDirection object of the
+        opposite direction.
+        '''
+        if self.is_send():
+            return self.__class__("receive")
+        else:
+            return self.__class__("send")
+    
+    def __eq__(self, other):
+        assert type(other) == type(self)
+        return self.__direction == other.__direction
+    
+    def __ne__(self, other):
+        assert type(other) == type(self)
+        return self.__direction != other.__direction
+    
+    def __str__(self):
+        return self.__direction
+    
+    def __repr__(self):
+        return self.__direction
+
 class SpeedTestExecutor(object):
     '''
     Base class for implementing a peer executor
@@ -26,11 +146,11 @@ class SpeedTestExecutor(object):
         '''
         @param owner The owner SpeedTest of this executor
         '''
-        assert isinstance(owner, SpeedTest)
+        assert isinstance(owner, SpeedTestDescriptor)
         self.__owner = owner
+        self.__results = None
         self.connection = None
         self.logger = logging.getLogger("test.{0}".format(self.owner.name))
-        self.__results = None
     
     @property
     def owner(self):
@@ -70,17 +190,17 @@ class SpeedTestExecutor(object):
         '''
         return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.id, expected_type))
     
-    def store_result(self, name, value):
+    def store_result(self, result_id, value):
         '''
         Store a result value in results container
         '''
         if self.__results is None:
             self.__results = {}
         
-        if not self.owner.result_descriptors.has_key(name):
+        if not self.owner.supported_results.has_key(result_id):
             raise LookupError("Cannot store results for an unknown result type")
-        assert isinstance(value, self.owner.result_descriptors[name].unit_type)
-        self.__results[name] = value
+        assert isinstance(value, self.owner.supported_results[result_id].unit_type)
+        self.__results[result_id] = value
     
     def propagate_results(self):
         '''
@@ -125,83 +245,22 @@ class SpeedTestExecutor(object):
         raise NotImplementedError()
     
 
-class ResultEntryDescriptor(object):
+class SpeedTestDescriptor(object):
     '''
-    Descriptor for a result entry
-    '''
-    def __init__(self, name, friendly_name, unit_type):
-        self.name = name
-        self.friendly_name = friendly_name
-        self.unit_type = unit_type
-
-class SpeedTestExecutorDirection(object):
-    '''
-    Encapsulates the logic of data direction in execution.
+    A SpeedTest descriptor, is used to describe
+    a speedtest operation model.
     '''
     
-    def __init__(self, initial):
-        '''
-        Create an initialized object
-        @param direction A string 'send' or 'receive' for the
-        state of this object
-        '''
-        assert initial in ["send", "receive"]
-        self.__direction = initial
-        
-    
-    def is_send(self):
-        '''
-        Check if it is sending direction
-        '''
-        return self.__direction == "send"
-    
-    def is_receive(self):
-        '''
-        Check if it is receiving direction
-        '''
-        return self.__direction == "receive"
-    
-    def opposite(self):
-        '''
-        Get SpeedTestExecutorDirection object with
-        the opposite direction.
-        '''
-        if self.is_send():
-            return SpeedTestExecutorDirection("receive")
-        else:
-            return SpeedTestExecutorDirection("send")
-    
-    def __eq__(self, other):
-        assert type(other) == type(self)
-        return self.__direction == other.__direction
-    
-    def __ne__(self, other):
-        assert type(other) == type(self)
-        return self.__direction != other.__direction
-    
-    def __str__(self):
-        return self.__direction
-    
-    def __repr__(self):
-        return self.__direction
-
-class SpeedTest(object):
-    '''
-    Base class for implementing a test
-    '''
-    def __init__(self, test_id, friendly_name, send_executor, receive_executor, result_descriptors):
+    def __init__(self, test_id, name, send_executor_class, receive_executor_class):
+        assert issubclass(send_executor_class, SpeedTestExecutor)
+        assert issubclass(receive_executor_class, SpeedTestExecutor)
         self.__test_id = test_id
-        self.__friendly_name = friendly_name
-        
-        assert issubclass(send_executor, SpeedTestExecutor)
-        assert issubclass(receive_executor, SpeedTestExecutor)
-        assert isinstance(result_descriptors, list)
-        self.__send_executor = send_executor(self)
-        self.__receive_executor = receive_executor(self)
-        self.result_descriptors = {}
-        for desc in result_descriptors:
-            self.result_descriptors[desc.name] = desc
-
+        self.__name = name
+        self.__send_executor_class = send_executor_class
+        self.__receive_executor_class = receive_executor_class
+        self.__result_descriptors = OrderedDict()
+        self.__options_descriptors = OrderedDict()
+    
     @property
     def id(self):
         '''
@@ -214,18 +273,64 @@ class SpeedTest(object):
         '''
         Get the name of the test
         '''
-        return self.__friendly_name
+        return self.__name
     
+    @property
+    def send_executor_class(self):
+        '''
+        Type of the send executor
+        '''
+        return self.__send_executor_class
+    
+    @property
+    def receive_executor_class(self):
+        '''
+        Type of the receive executor object
+        '''
+        return self.__receive_executor_class
+
+    @property
+    def supported_results(self):
+        '''
+        Get a list with all supported results entries
+        '''
+        return self.__result_descriptors
+    
+    @property
+    def supported_options(self):
+        '''
+        Get a list with all supported options
+        '''
+        return self.__options_descriptors
+    
+    def add_result(self, value_id, name, unit_type):
+        '''
+        Declare a supported result entry
+        @param value_id The identifier of this result value
+        @param name A friendly name of this result value
+        @param unit_type The type of this result value
+        '''
+        self.__result_descriptors[value_id] = ResultValueDescriptor(value_id, name, unit_type)
+
+    def add_option(self, option_id, help, unit_type):
+        '''
+        Declare a supported option for the test
+        @param option_id The identifier of the option
+        @param help A help string for the end user
+        @param unit_type The type of this value
+        '''
+        self.__supported_options[option_id] = OptionValueDescriptor(option_id, help, unit_type)
+
     def executor(self, direction):
         '''
-        Choose executor by specific direction.
+        Get a new executor instance based on direction
         '''
-        assert isinstance(direction, SpeedTestExecutorDirection)
+        assert isinstance(direction, ExecutionDirection)
         
         if direction.is_send():
-            return self.__send_executor
+            return self.__send_executor_class(self)
         else:
-            return self.__receive_executor
+            return self.__receive_executor_class(self)
 
 class SpeedTestExecution(object):
     '''
@@ -238,8 +343,8 @@ class SpeedTestExecution(object):
         @param direction The direction of test execution
         @param execution_id If it is empty, a new one will be generated
         '''
-        assert isinstance(test, SpeedTest)
-        assert isinstance(direction, SpeedTestExecutorDirection)
+        assert isinstance(test, SpeedTestDescriptor)
+        assert isinstance(direction, ExecutionDirection)
         
         self.__test = test
         self.__direction = direction
@@ -315,8 +420,8 @@ class SpeedTestMultiSampleExecution(object):
     Pack of multiple SpeedTestExecution objects
     '''
     def __init__(self, test, direction):
-        assert isinstance(test, SpeedTest)
-        assert isinstance(direction, SpeedTestExecutorDirection)
+        assert isinstance(test, SpeedTestDescriptor)
+        assert isinstance(direction, ExecutionDirection)
 
         self.__test = test
         self.__direction = direction
@@ -356,7 +461,7 @@ class SpeedTestMultiSampleExecution(object):
         '''
         reduced = {}
         for result_entry in self.test.result_descriptors.values():
-            assert isinstance(result_entry, ResultEntryDescriptor)
+            assert isinstance(result_entry, ResultValueDescriptor)
             
             # Collect all samples raw values
             data = utils.StatisticsArray([sample.results[result_entry.name].raw_value for sample in self.samples])
@@ -380,39 +485,4 @@ class SpeedTestMultiSampleExecution(object):
     
     def __iter__(self):
         return self.samples.__iter__()
-    
-    
-    
-# A list with all enabled tests
-__enabled_tests = {}
 
-def enable_test(test_class):
-    '''
-    Enable a new test
-    '''
-    global __enabled_tests
-    if test_class not in __enabled_tests:
-        test = test_class()
-        __enabled_tests[test.id] = test
-
-def get_enabled_tests():
-    '''
-    Get a dictionary with instances of all enabled
-    tests
-    '''
-    return __enabled_tests
-
-
-def get_enabled_test(test_name):
-    '''
-    Get access to a specific test
-    '''
-    return __enabled_tests[test_name]
-
-def is_test_enabled(test):
-    '''
-    Check if test is enabled
-    '''
-    tests = get_enabled_tests()
-    
-    return test in tests.keys()

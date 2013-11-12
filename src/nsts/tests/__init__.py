@@ -1,1 +1,1 @@
-all = ['unit_tests']
+__all__ = ['test_units', 'test_sensors_shell']
