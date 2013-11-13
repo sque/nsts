@@ -6,7 +6,9 @@ Created on Nov 4, 2013
 
 import socket, sys, logging, time
 import proto
-from nsts.speedtests import base, registry
+from nsts.profiles import base, registry
+from nsts.speedtest import SpeedTest, SpeedTestSuite
+from nsts.profiles.base import ProfileExecution
 
 
 logger = logging.getLogger("proto")
@@ -16,18 +18,17 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
     def __init__(self, connection):
         super(NSTSConnectionClient, self).__init__(connection)
     
-    def run_test(self, execution):
+    def run_profile(self, execution):
         """
         Execute a complete test on get results back
         """
-        assert isinstance(execution, base.SpeedTestExecution)
+        assert isinstance(execution, base.ProfileExecution)
         logger.info("Starting test '{0}'".format(execution.name))
 
         # ASSURE
         logger.debug("Checking test '{0}'".format(execution.name))
         executor = execution.executor
-        assert isinstance(executor, base.SpeedTestExecutor)
-        self.assure_test(execution.test.id)
+        self.assure_profile(execution.profile.id)
         if not executor.is_supported():
             logger.info("Test '{0}' is not supported.".format(execution.name))
             raise proto.ProtocolError("Test {0} is not supported locally".format(execution.name))
@@ -38,7 +39,7 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
             executor.initialize(self)
             logger.debug("Preparing execution '{0}'.".format(execution.name))
             self.send_msg("PREPARETEST", {
-                        "test_id" : execution.test.id,
+                        "profile_id" : execution.profile.id,
                         "direction" : str(execution.direction.opposite()),
                         'execution_id' : execution.id
                         })
@@ -88,23 +89,32 @@ class NSTSClient(object):
         self.connection.handshake(remote_ip)
         
             
-    def run_test(self, test_id, direction):
+    def run_profile(self, ctx):
         '''
-        Run a test and return results
+        Run a profile and return results
         '''
-        ctx = base.SpeedTestExecution(registry.get_test(test_id), direction)
-        return self.connection.run_test(ctx)
+        assert isinstance(ctx, base.ProfileExecution)
+        return self.connection.run_profile(ctx)
     
     
-    def multirun_test(self, test_id, direction, times, interval_secs = None):
+    def run_test(self, test):
         '''
-        Run a test multiple times between intervals and return results
+        Run a test as described by SpeedTest object
         '''
-        results = base.SpeedTestMultiSampleExecution(registry.get_test(test_id), direction)
+        assert isinstance(test, SpeedTest)
         
-        for i in range(0, times):
-            execution = self.run_test(test_id, direction)
-            results.push_sample(execution)
-            if i < times -1 and interval_secs is not None:
-                time.sleep(interval_secs)
-        return results
+        samples = test.options.test_options['samples']
+        interval = test.options.test_options['interval']
+        
+        for i in range(0, samples):
+            ctx = ProfileExecution(test.profile, test.direction, test.options.profile_options)
+            self.run_profile(ctx)
+            test.push_sample(ctx)
+            if i < samples -1 and interval.scale('sec') is not None:
+                time.sleep(interval.scale('sec'))
+    
+    def run_suite(self, suite):
+        
+        assert isinstance(suite, SpeedTestSuite)
+        for test in suite.tests:
+            self.run_test(test)

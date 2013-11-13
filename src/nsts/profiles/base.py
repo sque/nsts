@@ -55,11 +55,12 @@ class OptionValueDescriptor(object):
     '''
     Descriptor of test option value
     '''
-    def __init__(self, option_id, help, type):
+    def __init__(self, option_id, help, type, default = None):
         assert isinstance(help, basestring)
         self.__id = str(option_id)
         self.__help = help
         self.__type = type
+        self.__default = None if default is None else self.type(default) 
     
     @property
     def id(self):
@@ -82,6 +83,12 @@ class OptionValueDescriptor(object):
         '''
         return self.__type
 
+    @property
+    def default(self):
+        '''
+        Get the default value
+        '''
+        return self.__default
 
 class ExecutionDirection(object):
     '''
@@ -137,17 +144,17 @@ class ExecutionDirection(object):
     def __repr__(self):
         return self.__direction
 
-class SpeedTestExecutor(object):
+class ProfileExecutor(object):
     '''
-    Base class for implementing a peer executor
+    Base class for implementing a profile peer executor
     '''
     
     def __init__(self, owner):
         '''
-        @param owner The owner SpeedTestDescriptor of this executor
+        @param owner The owner SpeedTestProfile of this executor
         '''
-        if not isinstance(owner, SpeedTestDescriptor):
-            raise TypeError("Owner is not of 'SpeedTestDescriptor' type")
+        if not isinstance(owner, Profile):
+            raise TypeError("Owner is not of 'Profile' type")
         self.__owner = owner
         self.__results = OrderedDict()
         for rid in self.owner.supported_results.keys():
@@ -158,7 +165,7 @@ class SpeedTestExecutor(object):
     @property
     def owner(self):
         '''
-        Get SpeedTestDecriptor Owner of this executor instance
+        Get Profile owner of this executor instance
         '''
         return self.__owner
 
@@ -252,16 +259,17 @@ class SpeedTestExecutor(object):
         raise NotImplementedError()
     
 
-class SpeedTestDescriptor(object):
+class Profile(object):
     '''
-    A SpeedTest descriptor, is used to describe
-    a speedtest operation model.
+    A Profile describes a benchmark tool. It holds
+    information about options and results and scripts
+    that invoke the test.
     '''
     
     def __init__(self, test_id, name, send_executor_class, receive_executor_class):
-        if not issubclass(send_executor_class, SpeedTestExecutor) or \
-            not issubclass(receive_executor_class, SpeedTestExecutor):
-            raise TypeError("executor_class must be subclass of SpeedTestExecutor")
+        if not issubclass(send_executor_class, ProfileExecutor) or \
+            not issubclass(receive_executor_class, ProfileExecutor):
+            raise TypeError("executor_class must be subclass of ProfileExecutor")
         self.__test_id = test_id
         self.__name = name
         self.__send_executor_class = send_executor_class
@@ -340,22 +348,23 @@ class SpeedTestDescriptor(object):
         else:
             return self.__receive_executor_class(self)
 
-class SpeedTestExecution(object):
+class ProfileExecution(object):
     '''
-    Speedtest execution context
+    Execution context for a single speedtest profile
     '''
     
-    def __init__(self, test, direction, execution_id = None):
+    def __init__(self, profile, direction, options, execution_id = None):
         '''
-        @param test The SpeedTest object to execute
+        @param profile The Profile object to execute
         @param direction The direction of test execution
         @param execution_id If it is empty, a new one will be generated
         '''
-        assert isinstance(test, SpeedTestDescriptor)
+        assert isinstance(profile, Profile)
         assert isinstance(direction, ExecutionDirection)
         
-        self.__test = test
+        self.__profile = profile
         self.__direction = direction
+        self.__options = options
         
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
@@ -363,7 +372,7 @@ class SpeedTestExecution(object):
         # Generate execution id
         if execution_id is None:
             sha1 = hashlib.sha1()
-            sha1.update( test.id + str(self.started_at) + str(random.random()))
+            sha1.update(profile.id + str(self.started_at) + str(random.random()))
             self.__execution_id = sha1.hexdigest()
         else:
             self.__execution_id = execution_id
@@ -376,11 +385,18 @@ class SpeedTestExecution(object):
         return self.__execution_id
     
     @property
-    def test(self):
+    def options(self):
         '''
-        Get test object that was used for this execution
+        Get options for the executor
         '''
-        return self.__test
+        return self.__options
+    
+    @property
+    def profile(self):
+        '''
+        Get profile that was used for this execution
+        '''
+        return self.__profile
     
     @property
     def direction(self):
@@ -394,14 +410,14 @@ class SpeedTestExecution(object):
         '''
         Get name of this execution
         '''
-        return "{0} - {1}".format(self.test.name, str(self.direction))
+        return "{0} - {1}".format(self.profile.name, str(self.direction))
     
     @property
     def executor(self):
         '''
-        Get executor for this execution
+        Get a new executor for this execution
         '''
-        return self.test.executor(self.direction)
+        return self.profile.executor(self.direction)
     
     @property
     def results(self):
@@ -421,76 +437,4 @@ class SpeedTestExecution(object):
     
     def __iter__(self):
         return self.results.__iter__()
-
-
-class SpeedTestMultiSampleExecution(object):
-    '''
-    Pack of multiple SpeedTestExecution objects
-    '''
-    def __init__(self, test, direction):
-        assert isinstance(test, SpeedTestDescriptor)
-        assert isinstance(direction, ExecutionDirection)
-
-        self.__test = test
-        self.__direction = direction
-        self.samples = []
-
-    @property
-    def test(self):
-        '''
-        Get test object that was used for this execution
-        '''
-        return self.__test
-    
-    @property
-    def direction(self):
-        '''
-        Get direction that test was executed
-        '''
-        return self.__direction
-    
-    @property
-    def started_at(self):
-        '''
-        Get when was the first sample executed.
-        '''
-        return self.samples[0].started_at
-    
-    def push_sample(self, sample):
-        '''
-        Push another sample in the execution list
-        '''
-        assert isinstance(sample, SpeedTestExecution)
-        self.samples.append(sample)
-    
-    def statistics(self):
-        '''
-        Calculate statistics on samples
-        '''
-        reduced = {}
-        for result_entry in self.test.result_descriptors.values():
-            assert isinstance(result_entry, ResultValueDescriptor)
-            
-            # Collect all samples raw values
-            data = utils.StatisticsArray([sample.results[result_entry.name].raw_value for sample in self.samples])
-            
-            reduced_entry = {
-                'mean' :  result_entry.unit_type(data.mean()),
-                'min' :  result_entry.unit_type(data.min()),
-                'max' :  result_entry.unit_type(data.max()),
-                'std' :  result_entry.unit_type(data.std()),
-            }
-            
-            reduced[result_entry.name] = reduced_entry
-
-        return reduced
-    
-    def execution_time(self):
-        '''
-        Get total execution time for all samples
-        '''
-        return sum([s.execution_time() for s in self.samples], TimeUnit(0))
-    
-    def __iter__(self):
-        return self.samples.__iter__()
 

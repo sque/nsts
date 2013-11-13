@@ -5,12 +5,12 @@ Created on Nov 4, 2013
 '''
 
 import random
-from base import SpeedTestExecutor, SpeedTestDescriptor
+from base import ProfileExecutor, Profile
 from registry import register
 from nsts import units
 
 
-class DummyTestSender(SpeedTestExecutor):
+class DummyTestSender(ProfileExecutor):
         
     def is_supported(self):
         return True
@@ -27,7 +27,7 @@ class DummyTestSender(SpeedTestExecutor):
     def cleanup(self):
         pass
     
-class DummyTestReceiver(SpeedTestExecutor):
+class DummyTestReceiver(ProfileExecutor):
     
     def is_supported(self):
         return True
@@ -41,7 +41,7 @@ class DummyTestReceiver(SpeedTestExecutor):
     def cleanup(self):
         return True
     
-class DummyTest(SpeedTestDescriptor):
+class DummyTest(Profile):
     def __init__(self):
         super(DummyTest, self).__init__(
                 "dummy",

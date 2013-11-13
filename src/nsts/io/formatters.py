@@ -5,7 +5,7 @@ Created on Nov 6, 2013
 '''
 import datetime
 from nsts import core
-from nsts.speedtests.base import SpeedTestMultiSampleExecution
+from nsts.speedtest import SpeedTest
 from grid import  Grid
 
 class BasicFormatter(object):
@@ -26,7 +26,7 @@ class BasicFormatter(object):
         print " Activated Tests: {0}".format(tests)
         
     def push_test_results(self, test_samples):
-        assert isinstance(test_samples, SpeedTestMultiSampleExecution)
+
         
         self.tests_samples.append(test_samples)
             

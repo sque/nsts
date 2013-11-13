@@ -1,15 +1,15 @@
 
 from __future__ import absolute_import
 import unittest
-from nsts.speedtests.base import ExecutionDirection, ResultValueDescriptor, \
-    OptionValueDescriptor, SpeedTestExecutor, SpeedTestDescriptor
+from nsts.profiles.base import ExecutionDirection, ResultValueDescriptor, \
+    OptionValueDescriptor, ProfileExecutor, Profile
 from nsts import units
 from nsts.proto import NSTSConnectionBase
 import socket
 
-class SpeedTestExecutorA(SpeedTestExecutor):
+class ProfileExecutorA(ProfileExecutor):
     pass
-class SpeedTestExecutorB(SpeedTestExecutor):
+class ProfileExecutorB(ProfileExecutor):
     pass
 
 class TestExecutionDirection(unittest.TestCase):
@@ -104,6 +104,7 @@ class TestOptionValueDescriptor(unittest.TestCase):
         OptionValueDescriptor('a','a', float)
         OptionValueDescriptor('myid','myhelp', units.TimeUnit)
         OptionValueDescriptor(1,'', units.BitRateUnit)
+        OptionValueDescriptor(1,'', units.BitRateUnit, default = 1)
         
     def test_properties(self):
         
@@ -111,38 +112,46 @@ class TestOptionValueDescriptor(unittest.TestCase):
         self.assertEqual(o.id, 'myid')
         self.assertEqual(o.help, 'myhelp')
         self.assertEqual(o.type, units.TimeUnit)
+        self.assertEqual(o.default, None)
         
-        o = OptionValueDescriptor(1,'', float)
+        o = OptionValueDescriptor('myid','myhelp', units.TimeUnit, default=0)
+        self.assertEqual(o.id, 'myid')
+        self.assertEqual(o.help, 'myhelp')
+        self.assertEqual(o.type, units.TimeUnit)
+        self.assertEqual(o.default, units.TimeUnit(0))
+        
+        o = OptionValueDescriptor(1,'', float, default=10)
         self.assertEqual(o.id, '1')
         self.assertEqual(o.help, '')
         self.assertEqual(o.type, float)
+        self.assertEqual(o.default, 10)
         
-class TestSpeedTestExecutor(unittest.TestCase):
+class TestProfileExecutor(unittest.TestCase):
     
     def test_constructor(self):
         
         # Cannot omit parameters
         with self.assertRaises(TypeError):
-            SpeedTestExecutor()
+            ProfileExecutor()
         
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
-        SpeedTestExecutor(d)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        ProfileExecutor(d)
         
         with self.assertRaises(TypeError):
-            SpeedTestExecutor(1)
+            ProfileExecutor(1)
 
     def test_properties(self):
         
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
-        e = SpeedTestExecutor(d)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        e = ProfileExecutor(d)
         
         self.assertEqual(d, e.owner)
         self.assertIsNone(e.connection)
         self.assertEquals(len(e.results), 0)
         
     def test_initialize(self):
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
-        e = SpeedTestExecutor(d)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        e = ProfileExecutor(d)
         
         self.assertIsNone(e.connection)
         c = NSTSConnectionBase(socket.socket())
@@ -150,8 +159,8 @@ class TestSpeedTestExecutor(unittest.TestCase):
         self.assertEqual(c, e.connection)
         
     def test_store_result(self):
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
-        e = SpeedTestExecutor(d)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        e = ProfileExecutor(d)
         
         with self.assertRaises(ValueError):
             e.store_result('smt', 'a')
@@ -160,7 +169,7 @@ class TestSpeedTestExecutor(unittest.TestCase):
         d.add_result('smt2', 'Something', units.TimeUnit)
         d.add_result('smt3', 'Something', units.TimeUnit)
         
-        e = SpeedTestExecutor(d)
+        e = ProfileExecutor(d)
         self.assertEqual(len(e.results), 3)
         self.assertIsNone(e.results['smt'])
         self.assertIsNone(e.results['smt2'])
@@ -177,27 +186,27 @@ class TestSpeedTestExecutor(unittest.TestCase):
         self.assertEqual(e.results['smt'], units.TimeUnit('15 hour'))
     
     def test_result_order(self):
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
         d.add_result('smt1', 'Something', units.TimeUnit)
         d.add_result('smt2', 'Something', units.TimeUnit)
         d.add_result('smt3', 'Something', units.TimeUnit)
-        e = SpeedTestExecutor(d)
+        e = ProfileExecutor(d)
         
         # Check order
         self.assertEqual(['smt1', 'smt2', 'smt3'], e.results.keys())
         
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
         d.add_result('smt3', 'Something', units.TimeUnit)
         d.add_result('smt2', 'Something', units.TimeUnit)
         d.add_result('smt1', 'Something', units.TimeUnit)
-        e = SpeedTestExecutor(d)
+        e = ProfileExecutor(d)
         
         # Check order
         self.assertEqual(['smt3', 'smt2', 'smt1'], e.results.keys())
         
     def test_unimplemented(self):
-        d = SpeedTestDescriptor('d', 'd', SpeedTestExecutor, SpeedTestExecutor)
-        e = SpeedTestExecutor(d)
+        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        e = ProfileExecutor(d)
         
         with self.assertRaises(NotImplementedError):
             e.prepare()
@@ -210,30 +219,36 @@ class TestSpeedTestExecutor(unittest.TestCase):
             
         with self.assertRaises(NotImplementedError):
             e.cleanup()
-            
+    
+    def test_msg(self):
+        self.assertFalse(True, "Implement unittest on intra-profile messages")
 
-class TestSpeedTestDescriptor(unittest.TestCase):
+    def test_propage_results(self):
+        self.assertFalse(True, "Implement unittest on results propagation")
+        
+        
+class TestProfile(unittest.TestCase):
     
     def test_constructor(self):
         with self.assertRaises(TypeError):
-            SpeedTestDescriptor()
+            Profile()
             
         with self.assertRaises(TypeError):
-            SpeedTestDescriptor('myid', 'myname', SpeedTestExecutor, float)
+            Profile('myid', 'myname', ProfileExecutor, float)
             
         with self.assertRaises(TypeError):
-            SpeedTestDescriptor('myid', 'myname', float, SpeedTestExecutor)
+            Profile('myid', 'myname', float, ProfileExecutor)
         
-        SpeedTestDescriptor('myid', 'myname', SpeedTestExecutor, SpeedTestExecutor)
+        Profile('myid', 'myname', ProfileExecutor, ProfileExecutor)
         
     def test_properties(self):
         
-        d = SpeedTestDescriptor('myid', 'myname', SpeedTestExecutorA, SpeedTestExecutorB)
+        d = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
         
         self.assertEqual(d.id, 'myid')
         self.assertEqual(d.name, 'myname')
-        self.assertEqual(d.send_executor_class , SpeedTestExecutorA)
-        self.assertEqual(d.receive_executor_class, SpeedTestExecutorB)
+        self.assertEqual(d.send_executor_class , ProfileExecutorA)
+        self.assertEqual(d.receive_executor_class, ProfileExecutorB)
         self.assertIsNotNone(d.supported_options)
         self.assertIsNotNone(d.supported_results)
         

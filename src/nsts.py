@@ -8,9 +8,9 @@ Created on Nov 2, 2013
 import logging, argparse, sys
 from nsts.client import NSTSClient
 from nsts.server import NSTSServer
-from nsts.speedtests import *
-from nsts.speedtests import registry
-from nsts.io import formatters
+from nsts.profiles import *
+from nsts.profiles import registry
+from nsts.io import formatters, suite
 from nsts.io.grid import Grid
 
 def parse_test_arg(name):
@@ -39,7 +39,7 @@ parser = argparse.ArgumentParser(
 group = parser.add_mutually_exclusive_group(required = True)
 group.add_argument("-c", "--connect", help="connect to server.", type=str)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")
-list_tests = group.add_argument("--list-tests", help="list all available tests.", action="store_true")
+list_tests = group.add_argument("--list-profiles", help="list all available benchmarking profiles.", action="store_true")
 parser.add_argument("-d", "--debug", 
                     help="select level of logging. 0 will log everything (default {0})".format(logging.WARNING), 
                     type=int, default = logging.WARNING)
@@ -55,12 +55,12 @@ args = parser.parse_args()
 # Prepare logging
 logging.basicConfig(level = args.debug)
 
-if args.list_tests:
+if args.list_profiles:
     formater = formatters.BasicFormatter()
     
     # List tests mode
     print ""
-    print "Installed SpeedTests"
+    print "Installed Profiles"
     g = Grid(80)
     g.add_column('ID', width='fit')
     g.add_column('Name')
@@ -87,20 +87,13 @@ else:
     client = NSTSClient(args.connect)
     client.connect()
     
-    # Validate tests
-    tests_arg = args.tests.split(",")
-    tests = []
-    for test_arg in tests_arg:
-        tests.extend(parse_test_arg(test_arg))
-        
-    for test in tests:
-        if not registry.is_registered(test[0]):
-            print "Test '{0}' is unknown.".format(test[0])
-            sys.exit(1)
+    # Load command line suite
+    spsuite = suite.parse_command_line(args.tests)
             
     # Execute test
-    for test in tests:
-        test_result = client.multirun_test(test[0], test[1], args.samples, args.sample_interval)
+    for test in spsuite.tests:
+        test_result = client.run_test(test)
+        #multirun_test(test[0], test[1], args.samples, args.sample_interval)
         formater.push_test_results(test_result)
     
     # Finish

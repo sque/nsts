@@ -210,13 +210,13 @@ class NSTSConnectionBase(MessageStream):
             raise ProtocolError("Incompatible version")
         self.__local_addr = response.params['remote_addr']
     
-    def assure_test(self, test_id):
+    def assure_profile(self, profile_id):
         '''
-        Request other side to assure that a test is available
+        Request other side to assure that a profilet is available
         '''
-        self.send_msg("CHECKTEST", {"test_id" :test_id})
+        self.send_msg("CHECKTEST", {"profile_id" :profile_id})
         test_info = self.wait_msg_type("TESTINFO")
-        assert test_info.params["test_id"] == test_id
+        assert test_info.params["profile_id"] == profile_id
         if not (test_info.params["installed"] and test_info.params["supported"]):
             raise ProtocolError("Test {0} is not supported on the other side".format(test_info.error))
 

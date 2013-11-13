@@ -6,8 +6,9 @@ Created on Nov 4, 2013
 
 import socket, sys, logging
 from nsts import  proto
-from nsts.speedtests.base import SpeedTestExecution, ExecutionDirection
-from nsts.speedtests import registry
+from nsts.speedtest import SpeedTest, SpeedTestOptions, SpeedTestSuite
+from nsts.profiles import registry
+from nsts.profiles.base import ExecutionDirection, ProfileExecution
 
 logger = logging.getLogger("proto")
 
@@ -23,13 +24,13 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             supported = True # tests[name].server_executor.is_supported()
             logger.warning("FIX ME")
         self.send_msg("TESTINFO",{
-                    "test_id" : test_id,
+                    "profile_id" : test_id,
                     "installed" : installed,
                     "supported" : supported,
                     "error" : "unknown"
                     })
 
-    def serve_run_test(self, execution):
+    def serve_run_profile(self, execution):
         logger.info("Client requested execution of test {0}.".format(execution.name))
         executor = execution.executor
         
@@ -63,13 +64,13 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             msg = self.wait_msg()
             
             if msg.type == "CHECKTEST":
-                self.serve_checktest(msg.params["test_id"])
+                self.serve_checktest(msg.params["profile_id"])
             elif msg.type == "PREPARETEST":
-                test = registry.get_test(msg.params['test_id'])
+                profile = registry.get_profile(msg.params['profile_id'])
                 direction = ExecutionDirection(msg.params["direction"])
                 execution_id = msg.params['execution_id']
-                execution = SpeedTestExecution(test, direction, execution_id)
-                self.serve_run_test(execution)
+                execution = ProfileExecution(profile, direction, execution_id)
+                self.serve_run_profile(execution)
                 
 class NSTSServer(object):
     
