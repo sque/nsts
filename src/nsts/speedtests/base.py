@@ -144,18 +144,21 @@ class SpeedTestExecutor(object):
     
     def __init__(self, owner):
         '''
-        @param owner The owner SpeedTest of this executor
+        @param owner The owner SpeedTestDescriptor of this executor
         '''
-        assert isinstance(owner, SpeedTestDescriptor)
+        if not isinstance(owner, SpeedTestDescriptor):
+            raise TypeError("Owner is not of 'SpeedTestDescriptor' type")
         self.__owner = owner
-        self.__results = None
-        self.connection = None
+        self.__results = OrderedDict()
+        for rid in self.owner.supported_results.keys():
+            self.__results[rid] = None
+        self.__connection = None
         self.logger = logging.getLogger("test.{0}".format(self.owner.name))
     
     @property
     def owner(self):
         '''
-        Get SpeedTest Owner of this executor instance
+        Get SpeedTestDecriptor Owner of this executor instance
         '''
         return self.__owner
 
@@ -167,26 +170,34 @@ class SpeedTestExecutor(object):
         ''' 
         return self.__results
     
+    @property
+    def connection(self):
+        '''
+        Get the connection object that will be used
+        by this executor.
+        '''
+        return self.__connection
+    
     def initialize(self, connection):
         '''
         Called by the NSTS system to initialize executor
         @param connection The NSTSConnectionBase object that
         can be used to communicate with the other executor.
         '''
-        self.connection = connection
+        self.__connection = connection
         assert isinstance(self.connection, proto.NSTSConnectionBase)
     
     def send_msg(self, msg_type, msg_params = {}):
         '''
         Wrapper for sending messages in the way that protocol
-        defines inter-test communication.
+        defines intra-test communication.
         '''
         return self.connection.send_msg("__{0}_{1}".format(self.owner.id, msg_type), msg_params)
     
     def wait_msg_type(self, expected_type):
         '''
         Wrapper for receiving messages in the way that protocol
-        defines inter-test communication.
+        defines intra-test communication.
         '''
         return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.id, expected_type))
     
@@ -194,13 +205,9 @@ class SpeedTestExecutor(object):
         '''
         Store a result value in results container
         '''
-        if self.__results is None:
-            self.__results = {}
-        
-        if not self.owner.supported_results.has_key(result_id):
-            raise LookupError("Cannot store results for an unknown result type")
-        assert isinstance(value, self.owner.supported_results[result_id].unit_type)
-        self.__results[result_id] = value
+        if not self.__results.has_key(result_id):
+            raise ValueError("Cannot store results for unknown result id '{0}'".format(result_id))
+        self.__results[result_id] = self.owner.supported_results[result_id].unit_type(value)
     
     def propagate_results(self):
         '''
@@ -252,8 +259,9 @@ class SpeedTestDescriptor(object):
     '''
     
     def __init__(self, test_id, name, send_executor_class, receive_executor_class):
-        assert issubclass(send_executor_class, SpeedTestExecutor)
-        assert issubclass(receive_executor_class, SpeedTestExecutor)
+        if not issubclass(send_executor_class, SpeedTestExecutor) or \
+            not issubclass(receive_executor_class, SpeedTestExecutor):
+            raise TypeError("executor_class must be subclass of SpeedTestExecutor")
         self.__test_id = test_id
         self.__name = name
         self.__send_executor_class = send_executor_class
