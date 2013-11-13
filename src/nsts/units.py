@@ -50,8 +50,11 @@ class Unit(object):
         # Check if parsing is needed
         if isinstance(initial_value, basestring):
             self.__parse(initial_value)
+        # Check if it is a copy constructor
+        elif type(self) == type(initial_value):
+            self.raw_value = initial_value.raw_value
         else:
-            self.raw_value = initial_value
+            self.raw_value = float(initial_value)
 
     def __magnitude_order(self, magn_search):
         '''

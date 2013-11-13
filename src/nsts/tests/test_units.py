@@ -19,6 +19,13 @@ class TestTimeUnit(unittest.TestCase):
         t = units.TimeUnit(477777.54)
         self.assertEqual(t.raw_value, 477777.54)
 
+    def test_copy_constructor(self):
+        
+        t1 = units.TimeUnit(15)
+        t2 = units.TimeUnit(t1)
+        self.assertEqual(t1, t2)
+        self.assertEqual(t2.raw_value, 15)
+        
     def test_parse_constructor(self):
         self.assertEqual(units.TimeUnit('0 ms').raw_value, 0)
         self.assertEqual(units.TimeUnit('1 ms').raw_value, 0.001)
@@ -101,6 +108,13 @@ class TestBitRateUnit(unittest.TestCase):
         t = units.BitRateUnit(477777.54)
         self.assertEqual(t.raw_value, 477777.54)
 
+    def test_copy_constructor(self):
+        
+        b1 = units.BitRateUnit(15)
+        b2 = units.BitRateUnit(b1)
+        self.assertEqual(b1, b2)
+        self.assertEqual(b2.raw_value, 15)
+        
     def test_parse_constructor(self):
         self.assertEqual(units.BitRateUnit('0').raw_value, 0)
         self.assertEqual(units.BitRateUnit('2.2 bits/s').raw_value, 2.2)
