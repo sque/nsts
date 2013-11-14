@@ -1,16 +1,30 @@
 
 from __future__ import absolute_import
-import unittest
+import unittest, time
 from nsts.profiles.base import ExecutionDirection, ResultValueDescriptor, \
-    OptionValueDescriptor, ProfileExecutor, Profile
+    ProfileExecutor, Profile, ProfileExecution
 from nsts import units
-from nsts.proto import NSTSConnectionBase
+from nsts.options import Options, OptionsDescriptor
+from nsts.proto import NSTSConnectionBase, Message, ProtocolError
 import socket
+from collections import deque
 
 class ProfileExecutorA(ProfileExecutor):
     pass
 class ProfileExecutorB(ProfileExecutor):
     pass
+
+class NullNSTSConnection(NSTSConnectionBase):
+    
+    def __init__(self):
+        super(NullNSTSConnection, self).__init__(socket.socket())
+        self.queue = deque()
+        
+    def send_msg(self, msg_type, msg_params={}):
+        self.queue.appendleft(Message(msg_type, msg_params))
+    
+    def wait_msg(self):
+        return self.queue.pop()
 
 class TestExecutionDirection(unittest.TestCase):
     
@@ -93,40 +107,15 @@ class TestResultValueDescriptor(unittest.TestCase):
         self.assertEqual(r.name, '')
         self.assertEqual(r.unit_type, units.BitRateUnit)
         
-class TestOptionValueDescriptor(unittest.TestCase):
-    
-    def test_constructor(self):
-        # Cannot omit parameters
-        with self.assertRaises(TypeError):
-            OptionValueDescriptor()
-        
-        
-        OptionValueDescriptor('a','a', float)
-        OptionValueDescriptor('myid','myhelp', units.TimeUnit)
-        OptionValueDescriptor(1,'', units.BitRateUnit)
-        OptionValueDescriptor(1,'', units.BitRateUnit, default = 1)
-        
-    def test_properties(self):
-        
-        o = OptionValueDescriptor('myid','myhelp', units.TimeUnit)
-        self.assertEqual(o.id, 'myid')
-        self.assertEqual(o.help, 'myhelp')
-        self.assertEqual(o.type, units.TimeUnit)
-        self.assertEqual(o.default, None)
-        
-        o = OptionValueDescriptor('myid','myhelp', units.TimeUnit, default=0)
-        self.assertEqual(o.id, 'myid')
-        self.assertEqual(o.help, 'myhelp')
-        self.assertEqual(o.type, units.TimeUnit)
-        self.assertEqual(o.default, units.TimeUnit(0))
-        
-        o = OptionValueDescriptor(1,'', float, default=10)
-        self.assertEqual(o.id, '1')
-        self.assertEqual(o.help, '')
-        self.assertEqual(o.type, float)
-        self.assertEqual(o.default, 10)
+
         
 class TestProfileExecutor(unittest.TestCase):
+    
+    def dummy_ctx(self):
+        p = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
+        c = NSTSConnectionBase(socket.socket())
+        ctx = ProfileExecution(p, ExecutionDirection('s'), Options(p.supported_options), c)
+        return ctx
     
     def test_constructor(self):
         
@@ -134,42 +123,34 @@ class TestProfileExecutor(unittest.TestCase):
         with self.assertRaises(TypeError):
             ProfileExecutor()
         
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        ProfileExecutor(d)
+        
+        ProfileExecutor(self.dummy_ctx())
         
         with self.assertRaises(TypeError):
             ProfileExecutor(1)
 
     def test_properties(self):
         
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        e = ProfileExecutor(d)
+        ctx = self.dummy_ctx()
+        e = ProfileExecutor(ctx)
         
-        self.assertEqual(d, e.owner)
-        self.assertIsNone(e.connection)
+        self.assertEqual(e.context, ctx)
+        self.assertEqual(e.profile, ctx.profile)
         self.assertEquals(len(e.results), 0)
         
-    def test_initialize(self):
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        e = ProfileExecutor(d)
-        
-        self.assertIsNone(e.connection)
-        c = NSTSConnectionBase(socket.socket())
-        e.initialize(c)
-        self.assertEqual(c, e.connection)
         
     def test_store_result(self):
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        e = ProfileExecutor(d)
+        ctx = self.dummy_ctx()
+        e = ProfileExecutor(ctx)
         
         with self.assertRaises(ValueError):
             e.store_result('smt', 'a')
             
-        d.add_result('smt', 'Something', units.TimeUnit)
-        d.add_result('smt2', 'Something', units.TimeUnit)
-        d.add_result('smt3', 'Something', units.TimeUnit)
+        ctx.profile.add_result('smt', 'Something', units.TimeUnit)
+        ctx.profile.add_result('smt2', 'Something', units.TimeUnit)
+        ctx.profile.add_result('smt3', 'Something', units.TimeUnit)
         
-        e = ProfileExecutor(d)
+        e = ProfileExecutor(ctx)
         self.assertEqual(len(e.results), 3)
         self.assertIsNone(e.results['smt'])
         self.assertIsNone(e.results['smt2'])
@@ -186,27 +167,28 @@ class TestProfileExecutor(unittest.TestCase):
         self.assertEqual(e.results['smt'], units.TimeUnit('15 hour'))
     
     def test_result_order(self):
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        d.add_result('smt1', 'Something', units.TimeUnit)
-        d.add_result('smt2', 'Something', units.TimeUnit)
-        d.add_result('smt3', 'Something', units.TimeUnit)
-        e = ProfileExecutor(d)
+        ctx = self.dummy_ctx()
+        p = ctx.profile
+        p.add_result('smt1', 'Something', units.TimeUnit)
+        p.add_result('smt2', 'Something', units.TimeUnit)
+        p.add_result('smt3', 'Something', units.TimeUnit)
+        e = ProfileExecutor(ctx)
         
         # Check order
         self.assertEqual(['smt1', 'smt2', 'smt3'], e.results.keys())
         
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        d.add_result('smt3', 'Something', units.TimeUnit)
-        d.add_result('smt2', 'Something', units.TimeUnit)
-        d.add_result('smt1', 'Something', units.TimeUnit)
-        e = ProfileExecutor(d)
+        ctx = self.dummy_ctx()
+        p = ctx.profile
+        p.add_result('smt3', 'Something', units.TimeUnit)
+        p.add_result('smt2', 'Something', units.TimeUnit)
+        p.add_result('smt1', 'Something', units.TimeUnit)
+        e = ProfileExecutor(ctx)
         
         # Check order
         self.assertEqual(['smt3', 'smt2', 'smt1'], e.results.keys())
         
     def test_unimplemented(self):
-        d = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        e = ProfileExecutor(d)
+        e = ProfileExecutor(self.dummy_ctx())
         
         with self.assertRaises(NotImplementedError):
             e.prepare()
@@ -221,11 +203,41 @@ class TestProfileExecutor(unittest.TestCase):
             e.cleanup()
     
     def test_msg(self):
-        self.assertFalse(True, "Implement unittest on intra-profile messages")
+        p = Profile('d', 'd', ProfileExecutorA, ProfileExecutorB)
+        c = NullNSTSConnection()
+        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options, c)
+        a = ctxa.executor
+        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options, c)
+        b = ctxb.executor
+        
+        a.send_msg('LALA')
+        msg = b.wait_msg_type('LALA')
+        self.assertEqual(msg.type, '__d_LALA')
+        self.assertEqual(msg.params, {})
+
+        a.send_msg('LALA2')
+        with self.assertRaises(ProtocolError):
+            msg = b.wait_msg_type('LALA')
+        
 
     def test_propage_results(self):
-        self.assertFalse(True, "Implement unittest on results propagation")
+        p = Profile('d', 'd', ProfileExecutorA, ProfileExecutorB)
+        p.add_result('testdt', 'name', units.TimeUnit)
+        p.add_result('testbit', 'name', units.BitRateUnit)
         
+        c = NullNSTSConnection()
+        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options, c)
+        a = ctxa.executor
+        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options, c)
+        b = ctxb.executor
+        
+        a.store_result('testdt', '10 sec')
+        a.store_result('testbit', '32 bps')
+        a.propagate_results()
+        
+        b.collect_results()
+        self.assertEqual(b.results['testdt'], units.TimeUnit('10 sec'))
+        self.assertEqual(b.results['testbit'], units.BitRateUnit('32 bps'))
         
 class TestProfile(unittest.TestCase):
     
@@ -253,4 +265,82 @@ class TestProfile(unittest.TestCase):
         self.assertIsNotNone(d.supported_results)
         
     def test_options(self):
-        self.assertTrue(False, 'not implemented yet')
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        
+        self.assertEqual(len(p.supported_options), 0)
+        p.supported_options.add_option('myid', 'myhelp', float)
+        self.assertEqual(p.supported_options['myid'].help, 'myhelp')
+        
+        # No need check as it is of type OptionsDescriptor
+        self.assertIsInstance(p.supported_options, OptionsDescriptor)
+        
+class TestProfileExecution(unittest.TestCase):
+    
+    
+    def test_constructor(self):
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        dir = ExecutionDirection('s')
+        with self.assertRaises(TypeError):
+            ProfileExecution()
+            
+        with self.assertRaises(TypeError):
+            ProfileExecution(p)
+        
+        with self.assertRaises(TypeError):
+            ProfileExecution(p, dir)
+        
+        with self.assertRaises(TypeError):
+            ProfileExecution(p, dir, Options(p.supported_options))
+        
+        c = NullNSTSConnection()
+        ctx = ProfileExecution(p, dir, Options(p.supported_options), c)
+        
+    def test_properties(self):
+        c = NullNSTSConnection()
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        dir = ExecutionDirection('s')
+        opt = Options(p.supported_options)
+        ctx = ProfileExecution(p, dir, opt, c)
+        
+        
+        self.assertEqual(ctx.profile, p)
+        self.assertEqual(ctx.connection, c)
+        self.assertEqual(ctx.direction, dir)
+        self.assertEqual(ctx.options, opt)
+        
+    def test_name(self):
+        c = NullNSTSConnection()
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        dir = ExecutionDirection('s')
+        opt = Options(p.supported_options)
+        ctx = ProfileExecution(p, dir, opt, c)
+        self.assertIsInstance(ctx.name, basestring)
+
+        self.assertTrue(p.name in ctx.name)
+    
+    def test_executor(self):
+        c = NullNSTSConnection()
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        opt = Options(p.supported_options)
+        ctx = ProfileExecution(p, ExecutionDirection('s'), opt, c)
+        
+        x = ctx.executor
+        self.assertIsInstance(x, ProfileExecutorA)
+        self.assertEqual(x.profile, p)
+        
+        
+        ctx = ProfileExecution(p, ExecutionDirection('r'), opt, c)
+        x = ctx.executor
+        self.assertIsInstance(x, ProfileExecutorB)
+        self.assertEqual(x.profile, p)
+        
+    def test_finished(self):
+        c = NullNSTSConnection()
+        p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
+        opt = Options(p.supported_options)
+        ctx = ProfileExecution(p, ExecutionDirection('s'), opt, c)
+        time.sleep(0.8)
+        ctx.mark_finished()
+        
+        passed = ctx.execution_time()
+        self.assertTrue(abs(passed.raw_value - 0.8) < 0.1)

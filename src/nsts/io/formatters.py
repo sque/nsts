@@ -24,10 +24,8 @@ class BasicFormatter(object):
         print " Connected to: {0}:{1}".format(server, port)
         print " MultiSampling: {0}".format(samples)
         print " Activated Tests: {0}".format(tests)
-        
+    
     def push_test_results(self, test_samples):
-
-        
         self.tests_samples.append(test_samples)
             
         # Show table of analytic results
@@ -40,7 +38,7 @@ class BasicFormatter(object):
         grid = Grid(self.width)
         grid.add_column('', width='fit')
         grid.add_column('Took', width='fit')
-        for result_entry in test_samples.test.supported_results.values():
+        for result_entry in test_samples.profile.supported_results.values():
             grid.add_column(result_entry.name)
             
         # Push data
@@ -50,6 +48,7 @@ class BasicFormatter(object):
             
             grid.add_row(row)
         print grid
+    
     def finish(self):
         
         print ""
@@ -69,10 +68,10 @@ class BasicFormatter(object):
             grid.add_column('StdDev', width='equal')
         
             statistics = samples.statistics()
-            for i, metric_name in enumerate(statistics):
+            for _, metric_name in enumerate(statistics):
                 metric_stats = statistics[metric_name]
                 grid.add_row([
-                    samples.test.result_descriptors[metric_name].friendly_name,
+                    samples.profile.result_descriptors[metric_name].friendly_name,
                     metric_stats['mean'],
                     metric_stats['min'],
                     metric_stats['max'],

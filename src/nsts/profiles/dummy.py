@@ -16,7 +16,7 @@ class DummyTestSender(ProfileExecutor):
         return True
     
     def prepare(self):
-        return True
+        pass
     
     def run(self):
         self.store_result('random_transfer', units.BitRateUnit(random.random()))
@@ -33,13 +33,13 @@ class DummyTestReceiver(ProfileExecutor):
         return True
     
     def prepare(self):
-        return True
+        pass
     
     def run(self):
         self.collect_results()
 
     def cleanup(self):
-        return True
+        pass
     
 class DummyTest(Profile):
     def __init__(self):

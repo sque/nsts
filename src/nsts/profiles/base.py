@@ -6,8 +6,9 @@ Created on Nov 2, 2013
 
 import logging, datetime, hashlib, random
 from collections import OrderedDict
-from nsts import proto, utils
+from nsts import proto
 from nsts.units import TimeUnit, Unit
+from nsts.options import OptionValueDescriptor, OptionsDescriptor
 
 # Module logger
 logger = logging.getLogger("test")
@@ -50,45 +51,6 @@ class ResultValueDescriptor(object):
         Get the unit type of this entry
         '''
         return self.__unit_type
-
-class OptionValueDescriptor(object):
-    '''
-    Descriptor of test option value
-    '''
-    def __init__(self, option_id, help, type, default = None):
-        assert isinstance(help, basestring)
-        self.__id = str(option_id)
-        self.__help = help
-        self.__type = type
-        self.__default = None if default is None else self.type(default) 
-    
-    @property
-    def id(self):
-        '''
-        Get the id of this option
-        '''
-        return self.__id
-    
-    @property
-    def help(self):
-        '''
-        Get a help string, describing usage of this option
-        '''
-        return self.__help
-    
-    @property
-    def type(self):
-        '''
-        Get the type of this option
-        '''
-        return self.__type
-
-    @property
-    def default(self):
-        '''
-        Get the default value
-        '''
-        return self.__default
 
 class ExecutionDirection(object):
     '''
@@ -149,25 +111,24 @@ class ProfileExecutor(object):
     Base class for implementing a profile peer executor
     '''
     
-    def __init__(self, owner):
+    def __init__(self, context):
         '''
-        @param owner The owner SpeedTestProfile of this executor
+        @param context The execution context
         '''
-        if not isinstance(owner, Profile):
-            raise TypeError("Owner is not of 'Profile' type")
-        self.__owner = owner
+        if not isinstance(context, ProfileExecution):
+            raise TypeError("{0} is not instance of ProfileExecution".format(context))
+        
+        self.__execution_ctx = context
         self.__results = OrderedDict()
-        for rid in self.owner.supported_results.keys():
+        for rid in self.profile.supported_results.keys():
             self.__results[rid] = None
-        self.__connection = None
-        self.logger = logging.getLogger("test.{0}".format(self.owner.name))
     
     @property
-    def owner(self):
+    def profile(self):
         '''
         Get Profile owner of this executor instance
         '''
-        return self.__owner
+        return self.context.profile
 
     @property
     def results(self):
@@ -178,35 +139,25 @@ class ProfileExecutor(object):
         return self.__results
     
     @property
-    def connection(self):
+    def context(self):
         '''
-        Get the connection object that will be used
-        by this executor.
+        Get the execution context for this executor instance
         '''
-        return self.__connection
-    
-    def initialize(self, connection):
-        '''
-        Called by the NSTS system to initialize executor
-        @param connection The NSTSConnectionBase object that
-        can be used to communicate with the other executor.
-        '''
-        self.__connection = connection
-        assert isinstance(self.connection, proto.NSTSConnectionBase)
+        return self.__execution_ctx
     
     def send_msg(self, msg_type, msg_params = {}):
         '''
         Wrapper for sending messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.connection.send_msg("__{0}_{1}".format(self.owner.id, msg_type), msg_params)
+        return self.context.connection.send_msg("__{0}_{1}".format(self.profile.id, msg_type), msg_params)
     
     def wait_msg_type(self, expected_type):
         '''
         Wrapper for receiving messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.connection.wait_msg_type("__{0}_{1}".format(self.owner.id, expected_type))
+        return self.context.connection.wait_msg_type("__{0}_{1}".format(self.profile.id, expected_type))
     
     def store_result(self, result_id, value):
         '''
@@ -214,7 +165,7 @@ class ProfileExecutor(object):
         '''
         if not self.__results.has_key(result_id):
             raise ValueError("Cannot store results for unknown result id '{0}'".format(result_id))
-        self.__results[result_id] = self.owner.supported_results[result_id].unit_type(value)
+        self.__results[result_id] = self.profile.supported_results[result_id].unit_type(value)
     
     def propagate_results(self):
         '''
@@ -274,8 +225,8 @@ class Profile(object):
         self.__name = name
         self.__send_executor_class = send_executor_class
         self.__receive_executor_class = receive_executor_class
-        self.__result_descriptors = OrderedDict()
-        self.__options_descriptors = OrderedDict()
+        self.__supported_results = OrderedDict()
+        self.__supported_options = OptionsDescriptor()
     
     @property
     def id(self):
@@ -310,14 +261,14 @@ class Profile(object):
         '''
         Get a list with all supported results entries
         '''
-        return self.__result_descriptors
+        return self.__supported_results
     
     @property
     def supported_options(self):
         '''
         Get a list with all supported options
         '''
-        return self.__options_descriptors
+        return self.__supported_options
     
     def add_result(self, value_id, name, unit_type):
         '''
@@ -326,34 +277,14 @@ class Profile(object):
         @param name A friendly name of this result value
         @param unit_type The type of this result value
         '''
-        self.__result_descriptors[value_id] = ResultValueDescriptor(value_id, name, unit_type)
-
-    def add_option(self, option_id, help, unit_type):
-        '''
-        Declare a supported option for the test
-        @param option_id The identifier of the option
-        @param help A help string for the end user
-        @param unit_type The type of this value
-        '''
-        self.__supported_options[option_id] = OptionValueDescriptor(option_id, help, unit_type)
-
-    def executor(self, direction):
-        '''
-        Get a new executor instance based on direction
-        '''
-        assert isinstance(direction, ExecutionDirection)
-        
-        if direction.is_send():
-            return self.__send_executor_class(self)
-        else:
-            return self.__receive_executor_class(self)
+        self.__supported_results[value_id] = ResultValueDescriptor(value_id, name, unit_type)
 
 class ProfileExecution(object):
     '''
     Execution context for a single speedtest profile
     '''
     
-    def __init__(self, profile, direction, options, execution_id = None):
+    def __init__(self, profile, direction, options, connection, execution_id = None):
         '''
         @param profile The Profile object to execute
         @param direction The direction of test execution
@@ -365,6 +296,7 @@ class ProfileExecution(object):
         self.__profile = profile
         self.__direction = direction
         self.__options = options
+        self.__connection = connection
         
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
@@ -376,6 +308,13 @@ class ProfileExecution(object):
             self.__execution_id = sha1.hexdigest()
         else:
             self.__execution_id = execution_id
+        
+        # Create executor
+        if self.direction.is_send():
+            self.__executor = self.profile.send_executor_class(self)
+        else:
+            self.__executor = self.profile.receive_executor_class(self)
+
     
     @property
     def id(self):
@@ -406,6 +345,13 @@ class ProfileExecution(object):
         return self.__direction
     
     @property
+    def connection(self):
+        '''
+        Get connection object
+        '''
+        return self.__connection
+    
+    @property
     def name(self):
         '''
         Get name of this execution
@@ -415,9 +361,9 @@ class ProfileExecution(object):
     @property
     def executor(self):
         '''
-        Get a new executor for this execution
+        Get executor of this context
         '''
-        return self.profile.executor(self.direction)
+        return self.__executor
     
     @property
     def results(self):
@@ -434,7 +380,4 @@ class ProfileExecution(object):
     
     def execution_time(self):
         return TimeUnit((self.ended_at - self.started_at).total_seconds())
-    
-    def __iter__(self):
-        return self.results.__iter__()
 

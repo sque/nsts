@@ -92,9 +92,9 @@ else:
             
     # Execute test
     for test in spsuite.tests:
-        test_result = client.run_test(test)
+        test_result = client.run_test(test, args.samples, args.sample_interval)
         #multirun_test(test[0], test[1], args.samples, args.sample_interval)
-        formater.push_test_results(test_result)
+        formater.push_test_results(test)
     
     # Finish
     formater.finish()

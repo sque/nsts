@@ -36,7 +36,6 @@ class NSTSConnectionClient(proto.NSTSConnectionBase):
         # PREPARE
         try:
             
-            executor.initialize(self)
             logger.debug("Preparing execution '{0}'.".format(execution.name))
             self.send_msg("PREPARETEST", {
                         "profile_id" : execution.profile.id,
@@ -97,17 +96,19 @@ class NSTSClient(object):
         return self.connection.run_profile(ctx)
     
     
-    def run_test(self, test):
+    def run_test(self, test, samples, interval):
         '''
         Run a test as described by SpeedTest object
         '''
         assert isinstance(test, SpeedTest)
         
-        samples = test.options.test_options['samples']
-        interval = test.options.test_options['interval']
+        if test.options['samples'] is not None:
+            samples = test.options['samples']
+        if test.options['interval'] is not None:
+            interval = test.options['interval']
         
         for i in range(0, samples):
-            ctx = ProfileExecution(test.profile, test.direction, test.options.profile_options)
+            ctx = ProfileExecution(test.profile, test.direction, test.profile_options)
             self.run_profile(ctx)
             test.push_sample(ctx)
             if i < samples -1 and interval.scale('sec') is not None:
@@ -117,4 +118,4 @@ class NSTSClient(object):
         
         assert isinstance(suite, SpeedTestSuite)
         for test in suite.tests:
-            self.run_test(test)
+            self.run_test(test, suite.options['samples'], suite.options['interval'])
