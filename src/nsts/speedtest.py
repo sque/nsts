@@ -150,13 +150,13 @@ class SpeedTest(object):
         for result_entry in self.profile.supported_results.values():
             
             # Collect all samples raw values
-            data = utils.StatisticsArray([sample.results[result_entry.id].raw_value for sample in self.samples])
+            data = utils.UnitsStatisticsArray([sample.results[result_entry.id] for sample in self.samples])
             
             reduced_entry = {
-                'mean' :  result_entry.unit_type(data.mean()),
-                'min' :  result_entry.unit_type(data.min()),
-                'max' :  result_entry.unit_type(data.max()),
-                'std' :  result_entry.unit_type(data.std()),
+                'mean' :  data.mean(),
+                'min' :  data.min(),
+                'max' :  data.max(),
+                'std' :  data.std(),
             }
             
             reduced[result_entry.id] = reduced_entry
