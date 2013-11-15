@@ -52,7 +52,8 @@ class DummyTest(Profile):
         super(DummyTest, self).__init__(
                 "dummy",
                 "Dummy SpeedTest",
-                DummyTestSender, DummyTestReceiver)
+                DummyTestSender, DummyTestReceiver,
+                "A truly dummy test that returns some random numbers.")
         self.supported_options.add_option(
                 'min_transfer',
                 'The minimum random value of transfer',

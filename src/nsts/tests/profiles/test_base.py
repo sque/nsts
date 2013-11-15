@@ -255,6 +255,8 @@ class TestProfile(unittest.TestCase):
         
         Profile('myid', 'myname', ProfileExecutor, ProfileExecutor)
         
+        
+        
     def test_properties(self):
         
         d = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)
@@ -265,6 +267,10 @@ class TestProfile(unittest.TestCase):
         self.assertEqual(d.receive_executor_class, ProfileExecutorB)
         self.assertIsNotNone(d.supported_options)
         self.assertIsNotNone(d.supported_results)
+        self.assertIsNone(d.description)
+        
+        d = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB, description = 'mydesc')
+        self.assertEqual(d.description, 'mydesc')
         
     def test_options(self):
         p = Profile('myid', 'myname', ProfileExecutorA, ProfileExecutorB)

@@ -4,8 +4,9 @@ Created on Nov 6, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 import time
-from nsts.profiles import base
-from nsts import utils, units
+from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile
+from nsts.profiles import registry
+from nsts import units
 from subprocess import SubProcessExecutorBase
 
 
@@ -15,7 +16,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         super(PingExecutorSender, self).__init__(owner, 'ping')
         
     def prepare(self):
-        return True
+        pass
     
     def parse_and_store_output(self):
         output = self.get_subprocess_output()
@@ -23,7 +24,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         lines = output.split("\n")
         if lines[-2][:3] != 'rtt':
             self.logger.error("ping failed to complete." + str(lines))
-            raise base.SpeedTestRuntimeError("Unknown error, ping failed to complete.")
+            raise SpeedTestRuntimeError("Unknown error, ping failed to complete.")
         
         values = lines[-2].split()[3].split("/")
         unit_name = lines[-2].split()[4]
@@ -31,7 +32,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         self.store_result('rtt', rtt)
         
     def run(self):
-        self.execute_subprocess("-c", "1", self.connection.remote_addr)
+        self.execute_subprocess("-c", "1", self.context.connection.remote_addr)
         
         while self.is_subprocess_running():
             time.sleep(0.2)
@@ -43,7 +44,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         self.propagate_results()
     
 
-class PingExecutorReceiver(base.SpeedTestExecutor):
+class PingExecutorReceiver(ProfileExecutor):
     
     def __init__(self, owner):
         super(PingExecutorReceiver, self).__init__(owner)
@@ -60,12 +61,12 @@ class PingExecutorReceiver(base.SpeedTestExecutor):
     def cleanup(self):
         return True
 
-class PingTest(base.SpeedTest):
+class PingTest(Profile):
     
     def __init__(self):
-        descriptors = [
-                base.ResultEntryDescriptor("rtt", "RTT", units.TimeUnit),
-        ]
-        super(PingTest, self).__init__("ping", "Ping", PingExecutorSender, PingExecutorReceiver, descriptors)
+        super(PingTest, self).__init__(
+                "ping", "Ping", PingExecutorSender, PingExecutorReceiver,
+                description = 'A wrapper for "ping" system tool to measure round trip latency')
+        self.add_result("rtt", "RTT", units.TimeUnit)
 
-base.enable_test(PingTest)
+registry.register(PingTest())

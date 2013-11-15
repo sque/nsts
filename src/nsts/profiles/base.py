@@ -218,7 +218,7 @@ class Profile(object):
     that invoke the test.
     '''
     
-    def __init__(self, test_id, name, send_executor_class, receive_executor_class):
+    def __init__(self, test_id, name, send_executor_class, receive_executor_class, description = None):
         if not issubclass(send_executor_class, ProfileExecutor) or \
             not issubclass(receive_executor_class, ProfileExecutor):
             raise TypeError("executor_class must be subclass of ProfileExecutor")
@@ -228,6 +228,7 @@ class Profile(object):
         self.__receive_executor_class = receive_executor_class
         self.__supported_results = OrderedDict()
         self.__supported_options = OptionsDescriptor()
+        self.__description = description
     
     @property
     def id(self):
@@ -242,6 +243,13 @@ class Profile(object):
         Get the name of the test
         '''
         return self.__name
+    
+    @property
+    def description(self):
+        '''
+        Get a description of the profile
+        '''
+        return self.__description
     
     @property
     def send_executor_class(self):

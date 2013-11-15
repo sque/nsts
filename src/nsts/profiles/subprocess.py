@@ -4,11 +4,11 @@ Created on Nov 6, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 from __future__ import absolute_import
-from .base import SpeedTestExecutor
+from .base import ProfileExecutor
 from nsts import utils
 import subprocess as proc
 
-class SubProcessExecutorBase(SpeedTestExecutor):
+class SubProcessExecutorBase(ProfileExecutor):
 
     def __init__(self, owner, binary_name):
         super(SubProcessExecutorBase, self).__init__(owner)
