@@ -126,7 +126,6 @@ class BasicTerminal(ClientTerminal):
             sys.stdout.flush()
     
     def test_execution_started(self, test):
-        sys.stdout.write('{0}: '.format(test.name))
         if self.options['verbose']:
             print '\n{0}: '.format(test.name)
         else:

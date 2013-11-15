@@ -4,6 +4,8 @@ Created on Nov 6, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 
+from nsts import units
+
 class ColumnDescriptor(object):
     
     def __init__(self, title, width, align):
@@ -18,10 +20,11 @@ class ColumnDescriptor(object):
 class Grid(object):
     pass
     
-    def __init__(self, width):
+    def __init__(self, width, units_format="0.3f"):
         self.width = width
         self.column_descriptor = []
         self.rows = []
+        self.units_format = units_format
         
     def add_column(self, title, width = 'equal', align = 'left'):
         '''
@@ -35,6 +38,21 @@ class Grid(object):
         
     def add_row(self, row):
         assert isinstance(row, list)
+        for i, cell in enumerate(row):
+            if isinstance(cell, basestring):
+                row[i] = cell.strip()
+            elif isinstance(cell, int):
+                row[i] = str(cell)
+            elif isinstance(cell, units.Unit):
+                oscale = cell.optimal_scale()
+                row[i] = "{value:{format}} {unit}".format(
+                        value = oscale[0],
+                        format = self.units_format,
+                        unit = oscale[1])
+            else:
+                row[i] = "{value:{format}}".format(
+                        value = cell,
+                        format = self.units_format)
         self.rows.append(row)
         
     def get_column_widths(self):
@@ -46,7 +64,7 @@ class Grid(object):
         for i, c_width in enumerate(column_widths):
             if c_width == 'fit':
                 column_widths[i] = -1
-                column_widths[i] = max([len(str(row[i])) for row in self.rows])
+                column_widths[i] = max([len(row[i]) for row in self.rows])
                 column_widths[i] = max(column_widths[i], len(self.column_descriptor[i].title))
         
         # Calculate space that is fixed
@@ -78,7 +96,7 @@ class Grid(object):
     
     def __render_row(self, row, column_widths):
         
-        row_data = [str(cell).strip() for cell in row]
+        row_data = [cell for cell in row]
         # This variable will be populated with an extra row
         # if data does not fit
         extra_row = None
