@@ -35,9 +35,12 @@ def get_all():
     return __registered_profiles.values()
 
 
-def get_profile(test_id):
+def get_profile(prof_id):
     '''
     Get access to a specific profile
+    @raise LookupError on failure
     '''
-    return __registered_profiles[test_id]
+    if not is_registered(prof_id):
+        raise LookupError("There is no profile with name '{0}'".format(prof_id))
+    return __registered_profiles[prof_id]
 

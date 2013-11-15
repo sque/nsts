@@ -10,67 +10,6 @@ from nsts import utils
 from units import TimeUnit
 from nsts.options import OptionsDescriptor, Options
 
-"""
-class SpeedTestOptions(object):
-    
-    def __init__(self, profile, values = {}):
-        self.__profile = profile
-        self.__supported_options = []
-        for opt in profile.supported_options:
-            self.__supported_options[profile.id + "." + opt.id] = profile.supported_options[opt]
-        self.__supported_options.append(
-            OptionValueDescriptor('interval', '',TimeUnit, 0))
-        self.__supported_options.append(
-            OptionValueDescriptor('samples', '',int,5))
-        
-        self.load_values(values)    # Load default values
-    
-    @property
-    def profile(self):
-        return self.__profile
-    
-    @property
-    def profile_options(self):
-        return self.__profile_options
-    
-    @property
-    def test_options(self):
-        return self.__test_options
-    
-    def __is_profile_option_id(self, optid):
-        if optid[:len(self.profile.id)+1] == self.profile.id + '.':
-            return True
-
-    def __strip_profile_id(self, optid):
-        return optid[len(self.profile.id)+1:]
-
-    def load_values(self, options):
-        self.__test_options = {}
-        self.__profile_options = {}
-        
-        # Load default values
-        for opt in self.__supported_options:
-            if opt.default is None:
-                continue
-            if self.__is_profile_option_id(opt.id):
-                prof_optid = self.__strip_profile_id(opt.id)
-                self.__profile_options[prof_optid] = opt.default
-            else:
-                self.__test_options[opt.id] = opt.default
-        
-        # Load user-defined values
-        for opt in options:
-            if not self.__supported_options.has_key(opt.id):
-                raise OptionError("Test does not support option {1}".format(opt.id))
-            opt_desc = self.__supported_options[opt.id]
-
-            if self.__is_profile_option_id(opt.id):
-                prof_optid = self.__strip_profile_id(opt.id)
-                self.__profile_options[prof_optid] = opt_desc.type(options[opt.id])
-            else:
-                self.__test_options[opt.id] = opt_desc.type(options[opt.id])  
-"""
-
 class SpeedTestOptionsDescriptor(OptionsDescriptor):
     
     def __init__(self):
@@ -83,14 +22,14 @@ class SpeedTest(object):
     A SpeedTest involves running a profile with specific
     options and gathering results.
     '''
-    def __init__(self, profile, direction, options = {}):
+    def __init__(self, profile, direction, profile_options = {}):
         assert isinstance(profile, Profile)
         assert isinstance(direction, ExecutionDirection)
 
         self.__profile = profile
         self.__direction = direction
         self.__options = Options(SpeedTestOptionsDescriptor())
-        self.__profile_options = Options(profile.supported_options)
+        self.__profile_options = Options(profile.supported_options, profile_options)
         self.samples = []
 
     @property

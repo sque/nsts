@@ -96,7 +96,7 @@ class Options(object):
     A container of options that permit extensive
     description of each entry.
     '''
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, values = {}):
         if not isinstance(descriptor, OptionsDescriptor):
             raise TypeError("{0} is not instance of OptionsDescriptor".format(descriptor))
         self.__supported = descriptor
@@ -104,6 +104,12 @@ class Options(object):
         
         for option_id in self.__supported:
             self.__values[option_id] = self.__supported[option_id].default
+        
+        # Initialize with values
+        if not isinstance(values, dict):
+            raise TypeError("{0} is not instance of dictionary".format(values))
+        for opt_id in values:
+            self[opt_id] = values[opt_id]
 
     @property
     def supported(self):

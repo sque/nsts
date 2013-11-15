@@ -53,7 +53,9 @@ parser.add_argument("--samples",
 parser.add_argument("--sample-interval",
                     help="The interval time between samples in seconds. (default 0.0sec)",
                     default = 0.0, type=float)
-parser.add_argument("--tests", help="a comma separated list of all tests to execute", default="iperf_tcp_send")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("--tests", help="a comma separated list of all tests to execute")
+group.add_argument("--suite", help="a file with a suite to run")
 parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 args = parser.parse_args()
 
@@ -101,13 +103,23 @@ else:
     terminal.client_connected()
     
     # Load a suite from command line or file
-    spsuite = suite.parse_command_line(args.tests)
-    spsuite.options['samples'] = args.samples
-    spsuite.options['interval'] = args.sample_interval
+    if args.tests is not None:
+        spsuite = suite.parse_command_line(args.tests)
+        spsuite.options['samples'] = args.samples
+        spsuite.options['interval'] = args.sample_interval
+    elif args.suite is not None:
+        try:
+            spsuite = suite.load_file(args.suite)
+        except Exception, e:
+            print "Error loading suite file."
+            print str(e)
+            sys.exit(1)
+    else:
+        print "You need to define tests or load suite."
+        sys.exit(1)
     
     # Execute suite
     client.run_suite(spsuite, terminal)
-    
-    
+
     # Finish
     terminal.epilog()

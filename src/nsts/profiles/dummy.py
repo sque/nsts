@@ -19,8 +19,14 @@ class DummyTestSender(ProfileExecutor):
         pass
     
     def run(self):
-        self.store_result('random_transfer', units.BitRateUnit(random.random()))
-        self.store_result('random_time', units.TimeUnit(random.random()))
+        min_trans = self.context.options['min_transfer'].raw_value
+        max_trans = self.context.options['max_transfer'].raw_value
+        min_time = self.context.options['min_time'].raw_value
+        max_time = self.context.options['max_time'].raw_value
+        self.store_result('random_transfer',
+            units.BitRateUnit(random.uniform(min_trans, max_trans)))
+        self.store_result('random_time',
+            units.TimeUnit(random.uniform(min_time, max_time)))
         self.logger.debug("Results have been generated. Sending them to client...")
         self.propagate_results()
 
@@ -47,8 +53,25 @@ class DummyTest(Profile):
                 "dummy",
                 "Dummy SpeedTest",
                 DummyTestSender, DummyTestReceiver)
-        
+        self.supported_options.add_option(
+                'min_transfer',
+                'The minimum random value of transfer',
+                units.BitRateUnit, default =0)
+        self.supported_options.add_option(
+                'max_transfer',
+                'The maximum random value of transfer',
+                units.BitRateUnit, default =1)
+        self.supported_options.add_option(
+                'min_time',
+                'The minimum random value of time',
+                units.TimeUnit, default =0)
+        self.supported_options.add_option(
+                'max_time',
+                'The maximum random value of time',
+                units.TimeUnit, default =1)
+
         self.add_result('random_transfer', 'Random Transfer', units.BitRateUnit)
         self.add_result('random_time', 'Random Time', units.TimeUnit)
+        
 
 register(DummyTest())

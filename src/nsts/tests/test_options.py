@@ -130,7 +130,31 @@ class TestOptions(TestCaseExtra):
         
         with self.assertRaises(UnknownOptionError):
             o['test']
+
+    def test_constructor_initializing(self):
         
+        with self.assertRaises(TypeError):
+            o = Options()
+            
+        d = OptionsDescriptor()
+        d.add_option('test1', '',float)
+        d.add_option('test2', '',float)
+        o = Options(d, {'test1': '1.2'})
+        self.assertLength(o, 2)
+        
+        with self.assertRaises(UnknownOptionError):
+            o['unkown']
+        self.assertEqual(o['test1'], 1.2)
+        self.assertIsNone(o['test2'])
+        
+        # Initialize with unknown options
+        with self.assertRaises(UnknownOptionError):
+            o = Options(d, {'unknown':0})
+            
+        # Initialize with wrong type
+        with self.assertRaises(TypeError):
+            o = Options(d, [])
+            
     def test_add_option(self):
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
