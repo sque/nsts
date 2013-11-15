@@ -43,21 +43,21 @@ PARAMS = {
 A reply that last message was received
 and executed successfully.
 
-2.3 "CHECKTEST"
+2.3 "CHECKPROFILE"
 --------------------------------- 
 PARAMS = {
-   "test_id" 		// (string) unique name of the test
+   "profile_id" 	// (string) unique identifier of the profile
    }
 Asks the other peer to check for a test. Checking
 involves if it has the test or it can be run
 on the specific target.
 
-A "TESTINFO" response is expected.
+A "PROFILEINFO" response is expected.
 
-2.4 "TESTINFO"
+2.4 "PROFILEINFO"
 ---------------------------------
 PARAMS = {
-   "test_id" 		// (string) unique name of the test
+   "profile_id" 	// (string) unique identifier of the profile
    "installed" 		// (bool) Flag if the test is known
    "supported"		// (bool) Flag if the test can be run
    "error"			// (string) Any error message why is not supported 
@@ -65,23 +65,24 @@ PARAMS = {
 A message containing information about the status
 of test. 
 
-2.5 "PREPARETEST"
+2.5 "INSTANTIATEPROFILE"
 ---------------------------------
 PARAMS = {
-	"test_id"		// (string) unique name of the test
+	"profile_id"	// (string) unique identifier of the profile
 	"direction"		// (enum) = { "receive", "send" }
+	"options"		// (object) profile parameters
 	"execution_id"	// (string) unique id of execution context
 }
 Requests the other end to prepare a test for
 execution. An OK reply is expected.
 
 
-2.6 "TESTFINISHED"
+2.6 "EXECUTIONFINISHED"
 ---------------------------------
 PARAMS = {
 	"execution_id"	// (string) unique id of execution context
 }
-Announce that test has finished.
+Announce that profile execution has finished.
 
 2.7 "__XXXXX_YYYYY"
 ---------------------------------

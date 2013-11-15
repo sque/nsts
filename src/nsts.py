@@ -10,8 +10,11 @@ from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.profiles import *
 from nsts.profiles import registry
-from nsts.io import formatters, suite
+from nsts.io import suite
 from nsts.io.grid import Grid
+from nsts.io.terminal import BasicTerminal
+from nsts import units, core
+
 
 def parse_test_arg(name):
     if not "-" in name:
@@ -38,6 +41,7 @@ parser = argparse.ArgumentParser(
         "report it at https://github.com/sque/nsts")
 group = parser.add_mutually_exclusive_group(required = True)
 group.add_argument("-c", "--connect", help="connect to server.", type=str)
+group.add_argument("--port", help="server port.", type=int, default=core.DEFAULT_PORT)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")
 list_tests = group.add_argument("--list-profiles", help="list all available benchmarking profiles.", action="store_true")
 parser.add_argument("-d", "--debug", 
@@ -50,13 +54,20 @@ parser.add_argument("--sample-interval",
                     help="The interval time between samples in seconds. (default 0.0sec)",
                     default = 0.0, type=float)
 parser.add_argument("--tests", help="a comma separated list of all tests to execute", default="iperf_tcp_send")
+parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 args = parser.parse_args()
 
 # Prepare logging
 logging.basicConfig(level = args.debug)
 
+# Prepare terminal
+terminal = BasicTerminal()
+terminal.options['samples'] = args.samples
+terminal.options['interval'] = args.sample_interval
+terminal.options['verbose'] = args.verbose
+
 if args.list_profiles:
-    formater = formatters.BasicFormatter()
+    terminal.welcome()
     
     # List tests mode
     print ""
@@ -80,21 +91,23 @@ elif args.server:
     server = NSTSServer()
     server.serve()
 else:
-    formater = formatters.BasicFormatter()
-    formater.connection_info(args.samples, args.connect, '?', args.tests)
+    terminal.options['host'] = args.connect
+    terminal.options['port'] = args.port
+    terminal.welcome()
     
     # Client Mode
-    client = NSTSClient(args.connect)
+    client = NSTSClient(args.connect, args.port)
     client.connect()
+    terminal.client_connected()
     
-    # Load command line suite
+    # Load a suite from command line or file
     spsuite = suite.parse_command_line(args.tests)
-            
-    # Execute test
-    for test in spsuite.tests:
-        test_result = client.run_test(test, args.samples, args.sample_interval)
-        #multirun_test(test[0], test[1], args.samples, args.sample_interval)
-        formater.push_test_results(test)
+    spsuite.options['samples'] = args.samples
+    spsuite.options['interval'] = args.sample_interval
+    
+    # Execute suite
+    client.run_suite(spsuite, terminal)
+    
     
     # Finish
-    formater.finish()
+    terminal.epilog()

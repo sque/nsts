@@ -5,50 +5,61 @@ Created on Nov 4, 2013
 '''
 
 import socket, sys, logging
-from nsts import  proto
-from nsts.speedtest import SpeedTest, SpeedTestOptions, SpeedTestSuite
+from nsts import proto, core
+from nsts.speedtest import SpeedTest, SpeedTestSuite
 from nsts.profiles import registry
 from nsts.profiles.base import ExecutionDirection, ProfileExecution
+from nsts.proto import NSTSConnection
 
 logger = logging.getLogger("proto")
 
-class NSTSConnectionServer(proto.NSTSConnectionBase):
+class NSTSServer(object):
+    '''
+    NSTS server implementation that permits serial
+    serving of clients to execute their profiles.
+    '''
     
-    def __init__(self, connection):
-        super(NSTSConnectionServer, self).__init__(connection)
-    
-    def serve_checktest(self, test_id):
+    def __init__(self, host = None , port = None):
+        self.host = '' if host is None else host
+        self.port = core.DEFAULT_PORT if port is None else port
+
+    def __serve_cmd_checkprofile(self, connection, test_id):
+        '''
+        Serve client command of checking profile status
+        '''
         installed = registry.is_registered(test_id)
         supported = False
         if installed:
-            supported = True # tests[name].server_executor.is_supported()
-            logger.warning("FIX ME")
-        self.send_msg("TESTINFO",{
+            supported = True 
+            logger.warning("FIX ME: supported")
+        
+        connection.send_msg("PROFILEINFO",{
                     "profile_id" : test_id,
                     "installed" : installed,
                     "supported" : supported,
                     "error" : "unknown"
                     })
-
-    def serve_run_profile(self, execution):
-        logger.info("Client requested execution of test {0}.".format(execution.name))
-        executor = execution.executor
+    
+    def __serve_cmd_run_profile(self, ctx):
+        '''
+        Serve client command of executing a profile
+        '''
+        logger.info("Client requested execution of profile {0}.".format(ctx.name))
         
-        # PREPARE
         try:
-            executor.initialize(self)
-            logger.debug("Preparing test '{0}'.".format(execution.name))
+            executor = ctx.executor
+            logger.debug("Preparing profile '{0}'.".format(ctx.name))
             executor.prepare()
-            self.send_msg("OK")
+            ctx.connection.send_msg("OK")
             
             # RUN
-            logger.debug("Test '{0} started'.".format(execution.name))
+            logger.debug("Profile '{0}' started.".format(ctx.name))
             executor.run()
                 
             # STOP
-            logger.debug("Test '{0}' finished.".format(execution.name))
-            self.send_msg("TESTFINISHED", {"execution_id": execution.id})
-            self.wait_msg_type("TESTFINISHED")
+            logger.debug("Test '{0}' finished.".format(ctx.name))
+            ctx.connection.send_msg("EXECUTIONFINISHED", {"execution_id": ctx.id})
+            ctx.connection.wait_msg_type("EXECUTIONFINISHED")
             
         except Exception, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
@@ -56,52 +67,63 @@ class NSTSConnectionServer(proto.NSTSConnectionBase):
             raise
         
         executor.cleanup()
-        return execution
-        
-    def process_client_requets(self):
-        
+    
+    def __cmd_dispatcher(self, connection):
+        '''
+        Read messages from client and dispatch
+        to different commands
+        '''
         while(True):
-            msg = self.wait_msg()
             
-            if msg.type == "CHECKTEST":
-                self.serve_checktest(msg.params["profile_id"])
-            elif msg.type == "PREPARETEST":
+            msg = connection.wait_msg()
+            
+            if msg.type == "CHECKPROFILE":
+                # Check a profile
+                self.__serve_cmd_checkprofile(connection, msg.params["profile_id"])
+                
+            elif msg.type == "INSTANTIATEPROFILE":
+                # Run a profile
                 profile = registry.get_profile(msg.params['profile_id'])
                 direction = ExecutionDirection(msg.params["direction"])
                 execution_id = msg.params['execution_id']
-                execution = ProfileExecution(profile, direction, execution_id)
-                self.serve_run_profile(execution)
+                options = msg.params['options']
                 
-class NSTSServer(object):
-    
-    def __init__(self, host = None , port = None):
-        self.host = '' if host is None else host
-        self.port = 26532 if port is None else port
-
+                execution = ProfileExecution(
+                        profile,
+                        direction,
+                        options,
+                        connection,
+                        execution_id)
+                
+                self.__serve_cmd_run_profile(execution)
+                
     def serve(self):
-        ''' Start the server and start serving
-        in the same thread
+        ''' Start the server and start serving serially
+        in the same thread.
         '''
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
+        # Create socket
         try:
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind((self.host, self.port))
+            self.server_socket.listen(1)
         except socket.error , msg:
-            print 'Bind failed. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
+            print 'Socket error.. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
             sys.exit()
-        self.server_socket.listen(1)
+        
         logger.info("Server started listening at port {0}".format(self.port))
         print "Server started listening at port {0}".format(self.port)
+
         # Get new connections loop
         while(True):
             print "Waiting for new connection..."
             (socket_conn, socket_addr) = self.server_socket.accept()
             print 'Got connection from client ' + socket_addr[0] + ':' + str(socket_addr[1])
             try:
-                connection = NSTSConnectionServer(socket_conn)
+                connection = NSTSConnection(socket_conn)
                 connection.handshake(socket_addr[0])
-                connection.process_client_requets()
+                self.__cmd_dispatcher(connection)
             except (proto.ConnectionClosedException, socket.error), msg:
                 print "Client disconnected."
                 

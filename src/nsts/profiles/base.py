@@ -6,9 +6,9 @@ Created on Nov 2, 2013
 
 import logging, datetime, hashlib, random
 from collections import OrderedDict
-from nsts import proto
+from nsts.proto import NSTSConnection
 from nsts.units import TimeUnit, Unit
-from nsts.options import OptionValueDescriptor, OptionsDescriptor
+from nsts.options import OptionsDescriptor, Options
 
 # Module logger
 logger = logging.getLogger("test")
@@ -119,10 +119,11 @@ class ProfileExecutor(object):
             raise TypeError("{0} is not instance of ProfileExecution".format(context))
         
         self.__execution_ctx = context
+        self.logger = logging.getLogger("profile.{0}".format(self.profile.id)) 
         self.__results = OrderedDict()
         for rid in self.profile.supported_results.keys():
             self.__results[rid] = None
-    
+        
     @property
     def profile(self):
         '''
@@ -290,8 +291,14 @@ class ProfileExecution(object):
         @param direction The direction of test execution
         @param execution_id If it is empty, a new one will be generated
         '''
-        assert isinstance(profile, Profile)
-        assert isinstance(direction, ExecutionDirection)
+        if not isinstance(profile, Profile):
+            raise TypeError("{0} is not an instance of Profile".format(profile))
+        if not isinstance(direction, ExecutionDirection):
+            raise TypeError("{0} is not an instance of ExecutionDirection".format(direction))
+        if not isinstance(options, Options):
+            raise TypeError("{0} is not an instance of Options".format(options))
+        if not isinstance(connection, NSTSConnection):
+            raise TypeError("{0} is not an instance of NSTSConnection".format(connection))
         
         self.__profile = profile
         self.__direction = direction

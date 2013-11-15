@@ -4,14 +4,13 @@ Created on Nov 13, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 from nsts.profiles.base import Profile, ProfileExecution, \
-    ExecutionDirection, ResultValueDescriptor, OptionValueDescriptor
-    
+    ExecutionDirection
+
 from nsts import utils
 from units import TimeUnit
+from nsts.options import OptionsDescriptor, Options
 
-class OptionError(RuntimeError):
-    pass
-    
+"""
 class SpeedTestOptions(object):
     
     def __init__(self, profile, values = {}):
@@ -20,9 +19,9 @@ class SpeedTestOptions(object):
         for opt in profile.supported_options:
             self.__supported_options[profile.id + "." + opt.id] = profile.supported_options[opt]
         self.__supported_options.append(
-            OptionValueDescriptor('interval', '',TimeUnit, 1))
+            OptionValueDescriptor('interval', '',TimeUnit, 0))
         self.__supported_options.append(
-            OptionValueDescriptor('samples', '',int,10))
+            OptionValueDescriptor('samples', '',int,5))
         
         self.load_values(values)    # Load default values
     
@@ -70,6 +69,14 @@ class SpeedTestOptions(object):
                 self.__profile_options[prof_optid] = opt_desc.type(options[opt.id])
             else:
                 self.__test_options[opt.id] = opt_desc.type(options[opt.id])  
+"""
+
+class SpeedTestOptionsDescriptor(OptionsDescriptor):
+    
+    def __init__(self):
+        super(SpeedTestOptionsDescriptor, self).__init__()
+        self.add_option('interval', '',TimeUnit)
+        self.add_option('samples', '',int)
 
 class SpeedTest(object):
     '''
@@ -82,7 +89,8 @@ class SpeedTest(object):
 
         self.__profile = profile
         self.__direction = direction
-        self.__options = SpeedTestOptions(profile, options)
+        self.__options = Options(SpeedTestOptionsDescriptor())
+        self.__profile_options = Options(profile.supported_options)
         self.samples = []
 
     @property
@@ -93,11 +101,25 @@ class SpeedTest(object):
         return self.__profile
     
     @property
+    def name(self):
+        '''
+        Get Test name
+        '''
+        return "{0} ({1})".format(self.profile.name, self.direction)
+    
+    @property
     def options(self):
         '''
         Get SpeedTestOptions object that hold all option values
         '''
         return self.__options
+    
+    @property
+    def profile_options(self):
+        '''
+        Get profile options object
+        '''
+        return self.__profile_options
     
     @property
     def direction(self):
@@ -125,11 +147,10 @@ class SpeedTest(object):
         Calculate statistics on samples
         '''
         reduced = {}
-        for result_entry in self.test.result_descriptors.values():
-            assert isinstance(result_entry, ResultValueDescriptor)
+        for result_entry in self.profile.supported_results.values():
             
             # Collect all samples raw values
-            data = utils.StatisticsArray([sample.results[result_entry.name].raw_value for sample in self.samples])
+            data = utils.StatisticsArray([sample.results[result_entry.id].raw_value for sample in self.samples])
             
             reduced_entry = {
                 'mean' :  result_entry.unit_type(data.mean()),
@@ -138,7 +159,7 @@ class SpeedTest(object):
                 'std' :  result_entry.unit_type(data.std()),
             }
             
-            reduced[result_entry.name] = reduced_entry
+            reduced[result_entry.id] = reduced_entry
 
         return reduced
     
@@ -156,6 +177,11 @@ class SpeedTestSuite(object):
     
     def __init__(self):
         self.tests = []
+        self.__options = Options(SpeedTestOptionsDescriptor())
+        
+    @property
+    def options(self):
+        return self.__options
         
     def add_test(self, test):
         assert isinstance(test, SpeedTest)

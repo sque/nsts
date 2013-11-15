@@ -172,13 +172,13 @@ class MessageStream(object):
         self.socket.send(msg.encode() + MessageStream.MSG_DELIMITER)
         
 
-class NSTSConnectionBase(MessageStream):
+class NSTSConnection(MessageStream):
     '''
     Implement NSTS connection base
     '''
     
     def __init__(self, socket):
-        super(NSTSConnectionBase, self).__init__(socket)
+        super(NSTSConnection, self).__init__(socket)
         self.__remote_addr = None
         self.__local_addr = None
     
@@ -209,14 +209,4 @@ class NSTSConnectionBase(MessageStream):
         if response.params['version'] != VERSION:
             raise ProtocolError("Incompatible version")
         self.__local_addr = response.params['remote_addr']
-    
-    def assure_profile(self, profile_id):
-        '''
-        Request other side to assure that a profilet is available
-        '''
-        self.send_msg("CHECKTEST", {"profile_id" :profile_id})
-        test_info = self.wait_msg_type("TESTINFO")
-        assert test_info.params["profile_id"] == profile_id
-        if not (test_info.params["installed"] and test_info.params["supported"]):
-            raise ProtocolError("Test {0} is not supported on the other side".format(test_info.error))
 

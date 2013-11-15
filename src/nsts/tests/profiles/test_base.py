@@ -1,11 +1,11 @@
 
 from __future__ import absolute_import
-import unittest, time
+import unittest, time, logging
 from nsts.profiles.base import ExecutionDirection, ResultValueDescriptor, \
     ProfileExecutor, Profile, ProfileExecution
 from nsts import units
 from nsts.options import Options, OptionsDescriptor
-from nsts.proto import NSTSConnectionBase, Message, ProtocolError
+from nsts.proto import NSTSConnection, Message, ProtocolError
 import socket
 from collections import deque
 
@@ -14,7 +14,7 @@ class ProfileExecutorA(ProfileExecutor):
 class ProfileExecutorB(ProfileExecutor):
     pass
 
-class NullNSTSConnection(NSTSConnectionBase):
+class NullNSTSConnection(NSTSConnection):
     
     def __init__(self):
         super(NullNSTSConnection, self).__init__(socket.socket())
@@ -112,8 +112,8 @@ class TestResultValueDescriptor(unittest.TestCase):
 class TestProfileExecutor(unittest.TestCase):
     
     def dummy_ctx(self):
-        p = Profile('d', 'd', ProfileExecutor, ProfileExecutor)
-        c = NSTSConnectionBase(socket.socket())
+        p = Profile('profid', 'profame', ProfileExecutor, ProfileExecutor)
+        c = NullNSTSConnection()
         ctx = ProfileExecution(p, ExecutionDirection('s'), Options(p.supported_options), c)
         return ctx
     
@@ -138,6 +138,8 @@ class TestProfileExecutor(unittest.TestCase):
         self.assertEqual(e.profile, ctx.profile)
         self.assertEquals(len(e.results), 0)
         
+        self.assertIsInstance(e.logger, logging.Logger)
+        self.assertEqual("profile.profid", e.logger.name)
         
     def test_store_result(self):
         ctx = self.dummy_ctx()
@@ -203,16 +205,16 @@ class TestProfileExecutor(unittest.TestCase):
             e.cleanup()
     
     def test_msg(self):
-        p = Profile('d', 'd', ProfileExecutorA, ProfileExecutorB)
+        p = Profile('profid', 'profname', ProfileExecutorA, ProfileExecutorB)
         c = NullNSTSConnection()
-        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options, c)
+        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options(p.supported_options), c)
         a = ctxa.executor
-        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options, c)
+        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options(p.supported_options), c)
         b = ctxb.executor
         
         a.send_msg('LALA')
         msg = b.wait_msg_type('LALA')
-        self.assertEqual(msg.type, '__d_LALA')
+        self.assertEqual(msg.type, '__profid_LALA')
         self.assertEqual(msg.params, {})
 
         a.send_msg('LALA2')
@@ -221,14 +223,14 @@ class TestProfileExecutor(unittest.TestCase):
         
 
     def test_propage_results(self):
-        p = Profile('d', 'd', ProfileExecutorA, ProfileExecutorB)
+        p = Profile('profid', 'profname', ProfileExecutorA, ProfileExecutorB)
         p.add_result('testdt', 'name', units.TimeUnit)
         p.add_result('testbit', 'name', units.BitRateUnit)
         
         c = NullNSTSConnection()
-        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options, c)
+        ctxa = ProfileExecution(p, ExecutionDirection('s'), Options(p.supported_options), c)
         a = ctxa.executor
-        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options, c)
+        ctxb = ProfileExecution(p, ExecutionDirection('r'), Options(p.supported_options), c)
         b = ctxb.executor
         
         a.store_result('testdt', '10 sec')
@@ -293,6 +295,20 @@ class TestProfileExecution(unittest.TestCase):
             ProfileExecution(p, dir, Options(p.supported_options))
         
         c = NullNSTSConnection()
+        
+        with self.assertRaises(TypeError):
+            ProfileExecution(p, dir, Options(p.supported_options), float)
+            
+        with self.assertRaises(TypeError):
+            ProfileExecution(p, dir, float, c)
+            
+        with self.assertRaises(TypeError):
+            ProfileExecution(p, float, Options(p.supported_options), c)
+            
+        with self.assertRaises(TypeError):
+            ProfileExecution(float, dir, Options(p.supported_options), c)
+        
+        
         ctx = ProfileExecution(p, dir, Options(p.supported_options), c)
         
     def test_properties(self):

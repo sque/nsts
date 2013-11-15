@@ -5,3 +5,5 @@ Created on Nov 5, 2013
 '''
 
 VERSION = [0,0,'poc-2']
+
+DEFAULT_PORT = 26532
