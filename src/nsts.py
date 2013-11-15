@@ -70,23 +70,9 @@ terminal.options['verbose'] = args.verbose
 
 if args.list_profiles:
     terminal.welcome()
-    
-    # List tests mode
-    print ""
-    print "Installed Profiles"
-    g = Grid(80)
-    g.add_column('ID', width='fit')
-    g.add_column('Name')
-    g.add_column('Client', width = 'fit', align='center')
-    g.add_column('Server', width = 'fit', align='center')
-    
-    for test in registry.get_all():
-        check_mark = lambda b : 'X' if b else '-' 
-        g.add_row([test.id,
-                test.name,
-                'X','X'])#check_mark(test.client_executor.is_supported()),
-               # check_mark(test.server_executor.is_supported())])
-    print g
+    terminal.list_profiles(registry.get_all())
+    terminal.epilog()
+
     
 elif args.server:
     # Server Mode

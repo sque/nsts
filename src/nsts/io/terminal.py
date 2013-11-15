@@ -49,6 +49,11 @@ class ClientTerminal(object):
         '''
         pass
     
+    def list_profiles(self, profiles):
+        '''
+        Called to list all available profile
+        '''
+        
     def profile_execution_started(self, profile):
         '''
         Called when profile has started execution
@@ -119,6 +124,19 @@ class BasicTerminal(ClientTerminal):
         print "{0:-<{width}}".format("",width = self.width)
         #print " MultiSampling: {0}".format(self.options['samples'])
     
+    def list_profiles(self, profiles):
+        # List tests mode
+        print ""
+        print "Installed Profiles"
+        print "{0:-<{width}}".format("",width = self.width)
+        for profile in profiles:
+            print "[{0}] {1}".format(profile.id, profile.name)
+            for opt_id in profile.supported_options:
+                opt = profile.supported_options[opt_id]
+                print "  {id: <15}: {help}".format(id = opt_id, help = opt.help)
+                if opt.default is not None:
+                    print "  {0: <15}  default = {1}".format('', opt.default)
+
     def profile_execution_finished(self, profile):
         assert isinstance(profile, ProfileExecution)
         if not self.options['verbose']:

@@ -16,6 +16,7 @@ class SpeedTestOptionsDescriptor(OptionsDescriptor):
         super(SpeedTestOptionsDescriptor, self).__init__()
         self.add_option('interval', '',TimeUnit)
         self.add_option('samples', '',int)
+        self.add_option('name','',unicode)
 
 class SpeedTest(object):
     '''
@@ -44,7 +45,10 @@ class SpeedTest(object):
         '''
         Get Test name
         '''
-        return "{0} ({1})".format(self.profile.name, self.direction)
+        if self.options['name'] is None:
+            return "{0} ({1})".format(self.profile.name, self.direction)
+        else:
+            return "{0} ({1})".format(self.options['name'], self.direction)
     
     @property
     def options(self):

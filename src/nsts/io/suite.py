@@ -53,8 +53,6 @@ def load_file(suite_filename):
     for test_id in config.sections():
         if 'profile' not in config.options(test_id):
             raise ParseError("'profile' entry is mandatory for every test")
-        if 'name' not in config.options(test_id):
-            raise ParseError("'name' entry is mandatory for every test")
         if 'direction' in config.options(test_id):
             direction = [ExecutionDirection(config.get(test_id, 'direction'))]
             config.remove_option(test_id, 'direction')
@@ -62,10 +60,9 @@ def load_file(suite_filename):
             direction = [ExecutionDirection('s'), ExecutionDirection('r')]
         
         prof_id = config.get(test_id, 'profile')
-        name = config.get(test_id, 'name')
         profile = registry.get_profile(prof_id)
         config.remove_option(test_id, 'profile')
-        config.remove_option(test_id, 'name')
+
         
         # Load options only for profiles
         profile_options = {}

@@ -4,7 +4,7 @@ Created on Nov 6, 2013
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
 import time
-from nsts.speedtests import base
+from nsts.profiles import base
 from nsts import utils, units
 from subprocess import SubProcessExecutorBase
 
