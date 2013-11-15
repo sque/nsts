@@ -126,17 +126,16 @@ class BasicTerminal(ClientTerminal):
     
     def list_profiles(self, profiles):
         # List tests mode
-        print "Installed Profiles"
-        print "{0:-<{width}}".format("",width = self.width)
         for profile in profiles:
-            print "* [{0}] {1}".format(profile.id, profile.name)
+            print "{p.name} [{p.id}]".format(p = profile)
+            print "{0:-<{width}}".format("",width = self.width)
             if profile.description:
                 print profile.description
             for opt_id in profile.supported_options:
                 opt = profile.supported_options[opt_id]
                 print "  {id: <15}: {help}".format(id = opt_id, help = opt.help)
                 if opt.default is not None:
-                    print "  {0: <15}  default = {1}".format('', opt.default)
+                    print "  {0: <15}  (default = {1})".format('', opt.default)
             print ""
             #print "{0:-<{width}}".format("",width = self.width)
 
