@@ -47,9 +47,9 @@ class DummyTestReceiver(ProfileExecutor):
     def cleanup(self):
         pass
     
-class DummyTest(Profile):
+class DummyProfile(Profile):
     def __init__(self):
-        super(DummyTest, self).__init__(
+        super(DummyProfile, self).__init__(
                 "dummy",
                 "Dummy SpeedTest",
                 DummyTestSender, DummyTestReceiver,
@@ -75,4 +75,4 @@ class DummyTest(Profile):
         self.add_result('random_time', 'Random Time', units.TimeUnit)
         
 
-register(DummyTest())
+register(DummyProfile())

@@ -3,13 +3,11 @@ Created on Nov 6, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
-import time, random, hashlib, os, signal
-from nsts.speedtests import base
+import time, random, hashlib, os, signal, re
+from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile
+from nsts.profiles import registry
 from nsts import units, utils
 from subprocess import SubProcessExecutorBase
-import re
-
-HTTP_PORT=58338
 
 class ApacheExecutorServer(SubProcessExecutorBase):
     
@@ -49,7 +47,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         extra_arguments.append("ErrorLog {0}".format(self.error_log_file))
         extra_arguments.append("CustomLog {0} combined".format(self.access_log_file))
         extra_arguments.append("DocumentRoot {0}".format(self.document_root))
-        extra_arguments.append("Listen {0}".format(HTTP_PORT))
+        extra_arguments.append("Listen {0}".format(self.context.options['port']))
         
         apache_arguments = ["-d", "/tmp"]
         for opt in extra_arguments:
@@ -72,7 +70,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
         
         self.logger.debug("Stopping apache server gracefully.")
         if not os.path.isfile(self.pid_file):
-            raise base.SpeedTestRuntimeError("There is no PID file {0}".format(self.pid_file))
+            raise SpeedTestRuntimeError("There is no PID file {0}".format(self.pid_file))
         
         # Stopping apache
         pid = int(open(self.pid_file, "r").read().strip())
@@ -170,7 +168,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
         pattern = re.compile('^[^\(]+\(([^\)]+)\).*$')
         match = pattern.match(rate_line)
         if not match:
-            raise base.SpeedTestRuntimeError("Cannot parse wget output.")
+            raise SpeedTestRuntimeError("Cannot parse wget output.")
         
         speed = units.ByteRateUnit(match.group(1))
         return speed
@@ -218,7 +216,9 @@ class WgetExecutorClient(SubProcessExecutorBase):
         
     
     def prepare(self):
-        self.url_base = "http://{remote}:{port}/".format(remote = self.connection.remote_addr, port = HTTP_PORT)
+        self.url_base = "http://{remote}:{port}/".format(
+                remote = self.context.connection.remote_addr,
+                port = self.context.options['port'])
     
     def is_supported(self):
         return True
@@ -226,12 +226,15 @@ class WgetExecutorClient(SubProcessExecutorBase):
     def cleanup(self):
         return True
 
-class ApacheTest(base.SpeedTest):
+class ApacheProfile(Profile):
     
     def __init__(self):
-        descriptors = [
-                base.ResultEntryDescriptor("transfer_rate", "TransferRate", units.ByteRateUnit),
-        ]
-        super(ApacheTest, self).__init__("apache", "HTTP (apache)", ApacheExecutorServer, WgetExecutorClient, descriptors)
+        super(ApacheProfile, self).__init__(
+            "apache", "HTTP (apache)",
+            ApacheExecutorServer, WgetExecutorClient,
+            "Measure the performance of HTTP, by setting up a sandboxed apache server and download arbitrary binary files."
+            )
+        self.add_result("transfer_rate", "TransferRate", units.ByteRateUnit)
+        self.supported_options.add_option("port", "Apache listen port", int, 58338)
 
-base.enable_test(ApacheTest)
+registry.register(ApacheProfile())
