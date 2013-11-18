@@ -25,7 +25,7 @@ def parse_command_line(tests):
             
         else:
             parts = test.split("-")
-            profile_id = test[0]
+            profile_id = parts[0]
             direction = ExecutionDirection(parts[1]) 
             parsed_profiles.append([profile_id, direction])
             
