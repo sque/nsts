@@ -62,7 +62,7 @@ class NSTSServer(object):
             ctx.connection.send_msg("EXECUTIONFINISHED", {"execution_id": ctx.id})
             ctx.connection.wait_msg_type("EXECUTIONFINISHED")
             
-        except Exception, e:
+        except BaseException, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise

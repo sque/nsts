@@ -80,7 +80,13 @@ if args.list_profiles:
 elif args.server:
     # Server Mode
     server = NSTSServer(ipv6 = args.ipv6)
-    server.serve()
+    try:
+        server.serve()
+    except KeyboardInterrupt:
+        pass
+    except BaseException, e:
+        print "Unknown error"
+        print str(e)
 else:
     terminal.options['host'] = args.connect
     terminal.options['port'] = args.port
