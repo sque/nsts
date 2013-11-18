@@ -24,16 +24,21 @@ class NSTSClient(object):
     to a server and executing suites, tests or profiles
     '''
     
-    def __init__(self, remote_host , remote_port = None):
+    def __init__(self, remote_host , remote_port = None, ipv6 = False):
         self.remote_host = remote_host
         self.remote_port = core.DEFAULT_PORT if remote_port is None else remote_port
         self.connection = None
+        self.ipv6 = ipv6
         
     def connect(self):
         '''
         Perform actual connection to the server
         '''
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.ipv6:
+            self.socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        else:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
         try:
             self.socket.connect((self.remote_host, self.remote_port))
         except socket.error , msg:

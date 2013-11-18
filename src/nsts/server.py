@@ -19,9 +19,10 @@ class NSTSServer(object):
     serving of clients to execute their profiles.
     '''
     
-    def __init__(self, host = None , port = None):
+    def __init__(self, host = None , port = None, ipv6 = False):
         self.host = '' if host is None else host
         self.port = core.DEFAULT_PORT if port is None else port
+        self.ipv6 = ipv6
 
     def __serve_cmd_checkprofile(self, connection, test_id):
         '''
@@ -104,7 +105,10 @@ class NSTSServer(object):
         
         # Create socket
         try:
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if self.ipv6:
+                self.server_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            else:
+                self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(1)
@@ -126,4 +130,7 @@ class NSTSServer(object):
                 self.__cmd_dispatcher(connection)
             except (proto.ConnectionClosedException, socket.error), msg:
                 print "Client disconnected."
+            except Exception, e:
+                print "Client raised an exception: " + str(e)
+                socket_conn.close()
                 

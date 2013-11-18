@@ -22,9 +22,12 @@ class PingExecutorSender(SubProcessExecutorBase):
         output = self.get_subprocess_output()
         
         lines = output.split("\n")
-        if lines[-2][:3] != 'rtt':
-            self.logger.error("ping failed to complete." + str(lines))
-            raise SpeedTestRuntimeError("Unknown error, ping failed to complete.")
+        try:
+            if lines[-2][:3] != 'rtt':
+                raise LookupError(lines)
+        except LookupError:
+            self.logger.error("ping failed to complete." + str(output))
+            raise SpeedTestRuntimeError("Ping failed to complete: " + str(output))
         
         values = lines[-2].split()[3].split("/")
         unit_name = lines[-2].split()[4]

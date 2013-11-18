@@ -10,10 +10,12 @@ from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.profiles import *
 from nsts.profiles import registry
+from nsts.profiles.base import SpeedTestRuntimeError
 from nsts.io import suite
-from nsts.io.grid import Grid
 from nsts.io.terminal import BasicTerminal
-from nsts import units, core
+from nsts import core
+
+from nsts.proto import ProtocolError
 
 
 def parse_test_arg(name):
@@ -56,6 +58,7 @@ parser.add_argument("--sample-interval",
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--tests", help="a comma separated list of all tests to execute")
 group.add_argument("--suite", help="a file with a suite to run")
+parser.add_argument("-6", "--ipv6",  help="use IPv6 protocol for benchmarking", action="store_true")
 parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 args = parser.parse_args()
 
@@ -76,7 +79,7 @@ if args.list_profiles:
     
 elif args.server:
     # Server Mode
-    server = NSTSServer()
+    server = NSTSServer(ipv6 = args.ipv6)
     server.serve()
 else:
     terminal.options['host'] = args.connect
@@ -84,7 +87,7 @@ else:
     terminal.welcome()
     
     # Client Mode
-    client = NSTSClient(args.connect, args.port)
+    client = NSTSClient(remote_host = args.connect, remote_port = args.port, ipv6 = args.ipv6)
     client.connect()
     terminal.client_connected()
     
@@ -105,7 +108,17 @@ else:
         sys.exit(1)
     
     # Execute suite
-    client.run_suite(spsuite, terminal)
+    try:
+        client.run_suite(spsuite, terminal)
+    except (SpeedTestRuntimeError, ProtocolError), e:
+        print "Error while executing speedtest suite."
+        print str(e)
+        sys.exit(-1)
+    except Exception, e:
+        print "Unknown error"
+        print str(e)
+        sys.exit(-2)
+        
 
     # Finish
     terminal.epilog()
