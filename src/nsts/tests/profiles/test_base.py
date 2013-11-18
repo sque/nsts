@@ -92,20 +92,20 @@ class TestResultValueDescriptor(unittest.TestCase):
         with self.assertRaises(TypeError):
             ResultValueDescriptor('a','a', float)
             
-        ResultValueDescriptor('myid','myname', units.TimeUnit)
-        ResultValueDescriptor(1,'', units.BitRateUnit)
+        ResultValueDescriptor('myid','myname', units.Time)
+        ResultValueDescriptor(1,'', units.BitRate)
         
     def test_properties(self):
         
-        r = ResultValueDescriptor('myid','myname', units.TimeUnit)
+        r = ResultValueDescriptor('myid','myname', units.Time)
         self.assertEqual(r.id, 'myid')
         self.assertEqual(r.name, 'myname')
-        self.assertEqual(r.unit_type, units.TimeUnit)
+        self.assertEqual(r.unit_type, units.Time)
         
-        r = ResultValueDescriptor(1,'', units.BitRateUnit)
+        r = ResultValueDescriptor(1,'', units.BitRate)
         self.assertEqual(r.id, 1)
         self.assertEqual(r.name, '')
-        self.assertEqual(r.unit_type, units.BitRateUnit)
+        self.assertEqual(r.unit_type, units.BitRate)
         
 
         
@@ -148,9 +148,9 @@ class TestProfileExecutor(unittest.TestCase):
         with self.assertRaises(ValueError):
             e.store_result('smt', 'a')
             
-        ctx.profile.add_result('smt', 'Something', units.TimeUnit)
-        ctx.profile.add_result('smt2', 'Something', units.TimeUnit)
-        ctx.profile.add_result('smt3', 'Something', units.TimeUnit)
+        ctx.profile.add_result('smt', 'Something', units.Time)
+        ctx.profile.add_result('smt2', 'Something', units.Time)
+        ctx.profile.add_result('smt3', 'Something', units.Time)
         
         e = ProfileExecutor(ctx)
         self.assertEqual(len(e.results), 3)
@@ -161,19 +161,19 @@ class TestProfileExecutor(unittest.TestCase):
         
         # Check casting for storing
         e.store_result('smt', 0)
-        self.assertEqual(e.results['smt'], units.TimeUnit(0))
+        self.assertEqual(e.results['smt'], units.Time(0))
         
         # Overwrite values
         e.store_result('smt', '15 hour')
-        self.assertNotEqual(e.results['smt'], units.TimeUnit(0))
-        self.assertEqual(e.results['smt'], units.TimeUnit('15 hour'))
+        self.assertNotEqual(e.results['smt'], units.Time(0))
+        self.assertEqual(e.results['smt'], units.Time('15 hour'))
     
     def test_result_order(self):
         ctx = self.dummy_ctx()
         p = ctx.profile
-        p.add_result('smt1', 'Something', units.TimeUnit)
-        p.add_result('smt2', 'Something', units.TimeUnit)
-        p.add_result('smt3', 'Something', units.TimeUnit)
+        p.add_result('smt1', 'Something', units.Time)
+        p.add_result('smt2', 'Something', units.Time)
+        p.add_result('smt3', 'Something', units.Time)
         e = ProfileExecutor(ctx)
         
         # Check order
@@ -181,9 +181,9 @@ class TestProfileExecutor(unittest.TestCase):
         
         ctx = self.dummy_ctx()
         p = ctx.profile
-        p.add_result('smt3', 'Something', units.TimeUnit)
-        p.add_result('smt2', 'Something', units.TimeUnit)
-        p.add_result('smt1', 'Something', units.TimeUnit)
+        p.add_result('smt3', 'Something', units.Time)
+        p.add_result('smt2', 'Something', units.Time)
+        p.add_result('smt1', 'Something', units.Time)
         e = ProfileExecutor(ctx)
         
         # Check order
@@ -224,8 +224,8 @@ class TestProfileExecutor(unittest.TestCase):
 
     def test_propage_results(self):
         p = Profile('profid', 'profname', ProfileExecutorA, ProfileExecutorB)
-        p.add_result('testdt', 'name', units.TimeUnit)
-        p.add_result('testbit', 'name', units.BitRateUnit)
+        p.add_result('testdt', 'name', units.Time)
+        p.add_result('testbit', 'name', units.BitRate)
         
         c = NullNSTSConnection()
         ctxa = ProfileExecution(p, ExecutionDirection('s'), Options(p.supported_options), c)
@@ -238,8 +238,8 @@ class TestProfileExecutor(unittest.TestCase):
         a.propagate_results()
         
         b.collect_results()
-        self.assertEqual(b.results['testdt'], units.TimeUnit('10 sec'))
-        self.assertEqual(b.results['testbit'], units.BitRateUnit('32 bps'))
+        self.assertEqual(b.results['testdt'], units.Time('10 sec'))
+        self.assertEqual(b.results['testbit'], units.BitRate('32 bps'))
         
 class TestProfile(unittest.TestCase):
     

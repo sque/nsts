@@ -46,7 +46,7 @@ class IperfExecutorSender(SubProcessExecutorBase):
     
     def parse_and_store_output(self):
         output = self.get_subprocess_output()
-        self.store_result('transfer_rate', units.BitRateUnit(float(output.split(',')[8])))
+        self.store_result('transfer_rate', units.BitRate(float(output.split(',')[8])))
         
     def run(self):
         self.send_msg("STARTSERVER",  {"server_arguments" : self.server_arguments})
@@ -84,11 +84,11 @@ class IperfJitterExecutorSender(IperfExecutorSender):
         
         #sent = output[0].split(',')
         received = output[1].split(',')
-        self.store_result('transfer_rate', units.BitRateUnit(received[8]))
-        self.store_result('jitter', units.TimeUnit(received[9] + "ms"))
-        self.store_result('lost_packets', units.PacketUnit(received[10]))
-        self.store_result('total_packets', units.PacketUnit(received[11]))
-        self.store_result('percentage_lost', units.PercentageUnit(received[12]))
+        self.store_result('transfer_rate', units.BitRate(received[8]))
+        self.store_result('jitter', units.Time(received[9] + "ms"))
+        self.store_result('lost_packets', units.Packet(received[10]))
+        self.store_result('total_packets', units.Packet(received[11]))
+        self.store_result('percentage_lost', units.Percentage(received[12]))
         
 class IperfTCPProfile(Profile):
     
@@ -97,9 +97,9 @@ class IperfTCPProfile(Profile):
             "iperf_tcp",
             "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver,
             'Wrapper for "iperf" benchmark tool, to measure raw TCP throughput.')
-        self.add_result("transfer_rate", "Transfer Rate", units.BitRateUnit)
+        self.add_result("transfer_rate", "Transfer Rate", units.BitRate)
         self.supported_options.add_option(
-                'time', 'time to transmit for', units.TimeUnit, default=10)
+                'time', 'time to transmit for', units.Time, default=10)
         
 class IperfJitterProfile(Profile):
     
@@ -109,15 +109,15 @@ class IperfJitterProfile(Profile):
                 "iperf_jitter", "Jitter (iperf)",
                 IperfJitterExecutorSender, IperfExecutorReceiver,
                 'Wrapper for "iperf" benchmark tool, to measure latency jittering on UDP transmissions')
-        self.add_result("transfer_rate", "Trans. Rate", units.BitRateUnit)
-        self.add_result("jitter", "Jitter", units.TimeUnit)
-        self.add_result("lost_packets", "Lost Pck", units.PacketUnit)
-        self.add_result("total_packets", "Total Pck", units.PacketUnit)
-        self.add_result("percentage_lost", "Lost Pck %", units.PercentageUnit)
+        self.add_result("transfer_rate", "Trans. Rate", units.BitRate)
+        self.add_result("jitter", "Jitter", units.Time)
+        self.add_result("lost_packets", "Lost Pck", units.Packet)
+        self.add_result("total_packets", "Total Pck", units.Packet)
+        self.add_result("percentage_lost", "Lost Pck %", units.Percentage)
         self.supported_options.add_option(
-                'time', 'time to transmit for', units.TimeUnit, default=10)
+                'time', 'time to transmit for', units.Time, default=10)
         self.supported_options.add_option(
-                'rate', 'rate to send udp packages', units.BitRateUnit, default="1 Mbps")
+                'rate', 'rate to send udp packages', units.BitRate, default="1 Mbps")
 
 registry.register(IperfTCPProfile())
 registry.register(IperfJitterProfile())

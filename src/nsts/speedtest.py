@@ -7,14 +7,14 @@ from nsts.profiles.base import Profile, ProfileExecution, \
     ExecutionDirection
 
 from nsts import utils
-from units import TimeUnit
+from units import Time
 from nsts.options import OptionsDescriptor, Options
 
 class SpeedTestOptionsDescriptor(OptionsDescriptor):
     
     def __init__(self):
         super(SpeedTestOptionsDescriptor, self).__init__()
-        self.add_option('interval', '',TimeUnit)
+        self.add_option('interval', '',Time)
         self.add_option('samples', '',int)
         self.add_option('name','',unicode)
 
@@ -110,7 +110,7 @@ class SpeedTest(object):
         '''
         Get total execution time for all samples
         '''
-        return sum([s.execution_time() for s in self.samples], TimeUnit(0))
+        return sum([s.execution_time() for s in self.samples], Time(0))
     
     def __iter__(self):
         return self.samples.__iter__()

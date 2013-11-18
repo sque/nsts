@@ -13,23 +13,23 @@ class TestOptionValueDescriptor(unittest.TestCase):
         
         
         OptionValueDescriptor('a','a', float)
-        OptionValueDescriptor('myid','myhelp', units.TimeUnit)
-        OptionValueDescriptor(1,'', units.BitRateUnit)
-        OptionValueDescriptor(1,'', units.BitRateUnit, default = 1)
+        OptionValueDescriptor('myid','myhelp', units.Time)
+        OptionValueDescriptor(1,'', units.BitRate)
+        OptionValueDescriptor(1,'', units.BitRate, default = 1)
         
     def test_properties(self):
         
-        o = OptionValueDescriptor('myid','myhelp', units.TimeUnit)
+        o = OptionValueDescriptor('myid','myhelp', units.Time)
         self.assertEqual(o.id, 'myid')
         self.assertEqual(o.help, 'myhelp')
-        self.assertEqual(o.type, units.TimeUnit)
+        self.assertEqual(o.type, units.Time)
         self.assertEqual(o.default, None)
         
-        o = OptionValueDescriptor('myid','myhelp', units.TimeUnit, default=0)
+        o = OptionValueDescriptor('myid','myhelp', units.Time, default=0)
         self.assertEqual(o.id, 'myid')
         self.assertEqual(o.help, 'myhelp')
-        self.assertEqual(o.type, units.TimeUnit)
-        self.assertEqual(o.default, units.TimeUnit(0))
+        self.assertEqual(o.type, units.Time)
+        self.assertEqual(o.default, units.Time(0))
         
         o = OptionValueDescriptor(1,'', float, default=10)
         self.assertEqual(o.id, '1')
@@ -67,19 +67,19 @@ class TestOptionDescriptor(TestCaseExtra):
         self.assertEqual(d.supported['test'].id, 'test')
         self.assertEqual(d.supported['test'].default, None)
 
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         self.assertLength(d, 2)
-        self.assertEqual(d.supported['test2'].type, units.TimeUnit)
+        self.assertEqual(d.supported['test2'].type, units.Time)
         self.assertEqual(d.supported['test2'].help, 'Yeah')
         self.assertEqual(d.supported['test2'].id, 'test2')
-        self.assertEqual(d.supported['test2'].default, units.TimeUnit(0))
+        self.assertEqual(d.supported['test2'].default, units.Time(0))
         
         
     def test_access(self):
         
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         
         with self.assertRaises(UnknownOptionError):
             d['unknown']
@@ -101,7 +101,7 @@ class TestOptionDescriptor(TestCaseExtra):
         
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         
         with self.assertRaises(TypeError):
             d['unknown'] = 5
@@ -171,23 +171,23 @@ class TestOptions(TestCaseExtra):
         
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         o = Options(d)
 
         self.assertLength(o, 2)
         self.assertLength(o.supported, 2)
-        self.assertEqual(o.supported['test2'].type, units.TimeUnit)
+        self.assertEqual(o.supported['test2'].type, units.Time)
         self.assertEqual(o.supported['test2'].help, 'Yeah')
         self.assertEqual(o.supported['test2'].id, 'test2')
-        self.assertEqual(o.supported['test2'].default, units.TimeUnit(0))
+        self.assertEqual(o.supported['test2'].default, units.Time(0))
         self.assertIsNone(o['test'])
-        self.assertEqual(o['test2'], units.TimeUnit(0))
+        self.assertEqual(o['test2'], units.Time(0))
         
     def test_access(self):
         
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         o = Options(d)
 
         with self.assertRaises(UnknownOptionError):
@@ -195,7 +195,7 @@ class TestOptions(TestCaseExtra):
             
         # get item access
         self.assertIsNone(o['test'])
-        self.assertEqual(o['test2'], units.TimeUnit(0))
+        self.assertEqual(o['test2'], units.Time(0))
         
         # Iterator access
         optids = []
@@ -204,13 +204,13 @@ class TestOptions(TestCaseExtra):
             optids.append(opt_id)
             values.append(o[opt_id])
         self.assertEqual(optids, ['test', 'test2'])
-        self.assertEqual(values, [None, units.TimeUnit(0)])
+        self.assertEqual(values, [None, units.Time(0)])
         
     def test_mutator(self):
         
         d = OptionsDescriptor()
         d.add_option('test', 'Hello', float)
-        d.add_option('test2', 'Yeah', units.TimeUnit, 0)
+        d.add_option('test2', 'Yeah', units.Time, 0)
         o = Options(d)
         
         with self.assertRaises(UnknownOptionError):
@@ -221,11 +221,11 @@ class TestOptions(TestCaseExtra):
         
         
         o['test2'] = 7.1
-        self.assertEqual(o['test2'], units.TimeUnit(7.1))
+        self.assertEqual(o['test2'], units.Time(7.1))
         
         # Request for impossible casting
         with self.assertRaises(TypeError):
-            o['test2'] = units.BitRateUnit(0)
+            o['test2'] = units.BitRate(0)
             
         # Iterator access
         optids = []
@@ -234,4 +234,4 @@ class TestOptions(TestCaseExtra):
             optids.append(opt_id)
             values.append(o[opt_id])
         self.assertEqual(optids, ['test', 'test2'])
-        self.assertEqual(values, [5, units.TimeUnit(7.1)])
+        self.assertEqual(values, [5, units.Time(7.1)])

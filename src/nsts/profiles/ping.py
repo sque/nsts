@@ -34,7 +34,7 @@ class PingExecutorSender(SubProcessExecutorBase):
         
         values = lines[-2].split()[3].split("/")
         unit_name = lines[-2].split()[4]
-        rtt = units.TimeUnit(values[0] + " " +unit_name)
+        rtt = units.Time(values[0] + " " +unit_name)
         self.store_result('rtt', rtt)
         
     def run(self):
@@ -73,6 +73,6 @@ class PingProfile(Profile):
         super(PingProfile, self).__init__(
                 "ping", "Ping", PingExecutorSender, PingExecutorReceiver,
                 description = 'A wrapper for "ping" system tool to measure round trip latency')
-        self.add_result("rtt", "RTT", units.TimeUnit)
+        self.add_result("rtt", "RTT", units.Time)
 
 registry.register(PingProfile())

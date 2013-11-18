@@ -195,7 +195,7 @@ class Unit(object):
         assert type(self) == type(other)
         return type(self)(self.raw_value - other.raw_value)
     
-class BitRateUnit(Unit):
+class BitRate(Unit):
     '''
     BitRate measurement unit
     '''
@@ -215,9 +215,9 @@ class BitRateUnit(Unit):
                 'Tbit/s' : ['Tbits/s', 'Tb/s', 'Tbps'],
                 }
         
-        super(BitRateUnit, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
+        super(BitRate, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
 
-class ByteRateUnit(Unit):
+class ByteRate(Unit):
     '''
     ByteRate measurement unit
     '''
@@ -238,10 +238,10 @@ class ByteRateUnit(Unit):
                 'TByte/s' : ['TBytes/s', 'TB/s', 'TBps'],
                 }
         
-        super(ByteRateUnit, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
+        super(ByteRate, self).__init__("Transfer Rate", initial_value, magnitudes, alt_magnitude_names)
 
 
-class TimeUnit(Unit):
+class Time(Unit):
     '''
     Time measurement unit (seconds)
     '''
@@ -257,20 +257,22 @@ class TimeUnit(Unit):
                       (3600*24,  'day'),
                       (3600*24*7,'week'),
                       ]
-        super(TimeUnit, self).__init__("Time", initial_value, magnitudes)
+        super(Time, self).__init__("Time", initial_value, magnitudes)
 
-class PercentageUnit(Unit):
+class Percentage(Unit):
     
     def __init__(self, initial_value = 0):
         magnitudes = [
                       (1 , '%')
                      ]
-        super(PercentageUnit, self).__init__("Percentage", initial_value, magnitudes)
+        super(Percentage, self).__init__("Percentage", initial_value, magnitudes)
 
-class PacketUnit(Unit):
+class Packet(Unit):
     
     def __init__(self, initial_value = 0):
         magnitudes = [
                       (1 , 'p')
                      ]
-        super(PacketUnit, self).__init__("Packets", initial_value, magnitudes)
+        super(Packet, self).__init__("Packets", initial_value, magnitudes)
+        
+

@@ -170,7 +170,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
         if not match:
             raise SpeedTestRuntimeError("Cannot parse wget output.")
         
-        speed = units.ByteRateUnit(match.group(1))
+        speed = units.ByteRate(match.group(1))
         return speed
         
     def url_for(self, filename):
@@ -234,7 +234,7 @@ class ApacheProfile(Profile):
             ApacheExecutorServer, WgetExecutorClient,
             "Measure the performance of HTTP, by setting up a sandboxed apache server and download arbitrary binary files."
             )
-        self.add_result("transfer_rate", "TransferRate", units.ByteRateUnit)
+        self.add_result("transfer_rate", "TransferRate", units.ByteRate)
         self.supported_options.add_option("port", "Apache listen port", int, 58338)
         #self.supported_options.add_option("filesize", "The size of file to download", int, 1024*1024)
 

@@ -7,7 +7,7 @@ Created on Nov 2, 2013
 import logging, datetime, hashlib, random
 from collections import OrderedDict
 from nsts.proto import NSTSConnection
-from nsts.units import TimeUnit, Unit
+from nsts.units import Time, Unit
 from nsts.options import OptionsDescriptor, Options
 
 # Module logger
@@ -394,5 +394,5 @@ class ProfileExecution(object):
         self.ended_at = datetime.datetime.utcnow()
     
     def execution_time(self):
-        return TimeUnit((self.ended_at - self.started_at).total_seconds())
+        return Time((self.ended_at - self.started_at).total_seconds())
 
