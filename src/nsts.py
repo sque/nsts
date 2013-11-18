@@ -114,7 +114,9 @@ else:
         print "Error while executing speedtest suite."
         print str(e)
         sys.exit(-1)
-    except Exception, e:
+    except KeyboardInterrupt:
+        pass
+    except BaseException, e:
         print "Unknown error"
         print str(e)
         sys.exit(-2)

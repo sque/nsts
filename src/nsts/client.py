@@ -47,7 +47,8 @@ class NSTSClient(object):
         logger.debug("TCP connection established.")
 
         addr = socket.getaddrinfo(self.remote_host, 0)
-        remote_ip = addr[0][4][0]
+        # getaddrinfo returns all address for all familys. Select results from current family.
+        remote_ip = [a for a in addr if a[0] == self.socket.family][0][4][0]
         self.connection = NSTSConnection(self.socket)
         self.connection.handshake(remote_ip)
     
@@ -114,7 +115,7 @@ class NSTSClient(object):
             ctx.connection.wait_msg_type("EXECUTIONFINISHED")
             
             ctx.mark_finished()
-        except Exception, e:
+        except BaseException, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise

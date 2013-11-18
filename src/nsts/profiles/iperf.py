@@ -33,11 +33,14 @@ class IperfExecutorReceiver(SubProcessExecutorBase):
 
 class IperfExecutorSender(SubProcessExecutorBase):
     
-    def __init__(self, owner):
-        super(IperfExecutorSender, self).__init__(owner, 'iperf')
+    def __init__(self, context):
+        super(IperfExecutorSender, self).__init__(context, 'iperf')
         self.server_arguments = ["-s"]
         self.client_arguments = [ "-y", "C"]
-        
+        if context.connection.is_ipv6():
+            self.client_arguments.append('-V')
+            self.server_arguments.append('-V')
+            
     def prepare(self):
         return True
     
@@ -70,11 +73,11 @@ class IperfJitterExecutorSender(IperfExecutorSender):
     
     def __init__(self, context):
         super(IperfJitterExecutorSender, self).__init__(context)
-        self.server_arguments = ["-s", "-u"]
-        self.client_arguments = ["-u", "-y", "C",
+        self.server_arguments.extend(["-u"])
+        self.client_arguments.extend(["-u",
                 "-t", str(self.context.options['time'].raw_value),
-                "-b", str(self.context.options['rate'].raw_value)]
-        
+                "-b", str(self.context.options['rate'].raw_value)])
+
         
     def parse_and_store_output(self):
         output = self.get_subprocess_output().split("\n")
@@ -87,10 +90,10 @@ class IperfJitterExecutorSender(IperfExecutorSender):
         self.store_result('total_packets', units.PacketUnit(received[11]))
         self.store_result('percentage_lost', units.PercentageUnit(received[12]))
         
-class IperfTCP(Profile):
+class IperfTCPProfile(Profile):
     
     def __init__(self):
-        super(IperfTCP, self).__init__(
+        super(IperfTCPProfile, self).__init__(
             "iperf_tcp",
             "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver,
             'Wrapper for "iperf" benchmark tool, to measure raw TCP throughput.')
@@ -98,11 +101,11 @@ class IperfTCP(Profile):
         self.supported_options.add_option(
                 'time', 'time to transmit for', units.TimeUnit, default=10)
         
-class IperfJitter(Profile):
+class IperfJitterProfile(Profile):
     
     def __init__(self):
 
-        super(IperfJitter, self).__init__(
+        super(IperfJitterProfile, self).__init__(
                 "iperf_jitter", "Jitter (iperf)",
                 IperfJitterExecutorSender, IperfExecutorReceiver,
                 'Wrapper for "iperf" benchmark tool, to measure latency jittering on UDP transmissions')
@@ -116,5 +119,5 @@ class IperfJitter(Profile):
         self.supported_options.add_option(
                 'rate', 'rate to send udp packages', units.BitRateUnit, default="1 Mbps")
 
-registry.register(IperfTCP())
-registry.register(IperfJitter())
+registry.register(IperfTCPProfile())
+registry.register(IperfJitterProfile())

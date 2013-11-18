@@ -236,5 +236,6 @@ class ApacheProfile(Profile):
             )
         self.add_result("transfer_rate", "TransferRate", units.ByteRateUnit)
         self.supported_options.add_option("port", "Apache listen port", int, 58338)
+        #self.supported_options.add_option("filesize", "The size of file to download", int, 1024*1024)
 
 registry.register(ApacheProfile())

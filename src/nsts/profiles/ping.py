@@ -12,8 +12,11 @@ from subprocess import SubProcessExecutorBase
 
 class PingExecutorSender(SubProcessExecutorBase):
     
-    def __init__(self, owner):
-        super(PingExecutorSender, self).__init__(owner, 'ping')
+    def __init__(self, context):
+        executable = 'ping'
+        if context.connection.is_ipv6():
+            executable = 'ping6'
+        super(PingExecutorSender, self).__init__(context, executable)
         
     def prepare(self):
         pass
@@ -64,12 +67,12 @@ class PingExecutorReceiver(ProfileExecutor):
     def cleanup(self):
         return True
 
-class PingTest(Profile):
+class PingProfile(Profile):
     
     def __init__(self):
-        super(PingTest, self).__init__(
+        super(PingProfile, self).__init__(
                 "ping", "Ping", PingExecutorSender, PingExecutorReceiver,
                 description = 'A wrapper for "ping" system tool to measure round trip latency')
         self.add_result("rtt", "RTT", units.TimeUnit)
 
-registry.register(PingTest())
+registry.register(PingProfile())

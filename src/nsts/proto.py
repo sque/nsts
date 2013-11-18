@@ -170,7 +170,9 @@ class MessageStream(object):
         '''
         msg = Message(msg_type, msg_params)
         self.socket.send(msg.encode() + MessageStream.MSG_DELIMITER)
-        
+    
+    def is_ipv6(self):
+        return self.socket.family == socket.AF_INET6
 
 class NSTSConnection(MessageStream):
     '''
