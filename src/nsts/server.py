@@ -32,7 +32,6 @@ class NSTSServer(object):
         supported = False
         if installed:
             supported = True 
-            logger.warning("FIX ME: supported")
         
         connection.send_msg("PROFILEINFO",{
                     "profile_id" : test_id,

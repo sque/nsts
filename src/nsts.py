@@ -43,9 +43,9 @@ parser = argparse.ArgumentParser(
         "report it at https://github.com/sque/nsts")
 group = parser.add_mutually_exclusive_group(required = True)
 group.add_argument("-c", "--connect", help="connect to server.", type=str)
-group.add_argument("--port", help="server port.", type=int, default=core.DEFAULT_PORT)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")
 list_tests = group.add_argument("--list-profiles", help="list all available benchmarking profiles.", action="store_true")
+parser.add_argument("-p", "--port", help="server/client port.", type=int, default=core.DEFAULT_PORT)
 parser.add_argument("-d", "--debug", 
                     help="select level of logging. 0 will log everything (default {0})".format(logging.WARNING), 
                     type=int, default = logging.WARNING)
@@ -80,7 +80,7 @@ if args.list_profiles:
     
 elif args.server:
     # Server Mode
-    server = NSTSServer(ipv6 = args.ipv6)
+    server = NSTSServer(ipv6 = args.ipv6, port= args.port)
     try:
         server.serve()
     except KeyboardInterrupt:
