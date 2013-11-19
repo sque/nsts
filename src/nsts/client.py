@@ -46,9 +46,7 @@ class NSTSClient(object):
             sys.exit()
         logger.debug("TCP connection established.")
 
-        addr = socket.getaddrinfo(self.remote_host, 0)
-        # getaddrinfo returns all address for all familys. Select results from current family.
-        remote_ip = [a for a in addr if a[0] == self.socket.family][0][4][0]
+        remote_ip = self.socket.getpeername()[0]
         self.connection = NSTSConnection(self.socket)
         self.connection.handshake(remote_ip)
     
