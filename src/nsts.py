@@ -70,6 +70,7 @@ terminal = BasicTerminal()
 terminal.options['samples'] = args.samples
 terminal.options['interval'] = args.sample_interval
 terminal.options['verbose'] = args.verbose
+terminal.options['suite_filename'] = '' if not args.suite else args.suite
 
 if args.list_profiles:
     terminal.welcome()
@@ -88,14 +89,13 @@ elif args.server:
         print "Unknown error"
         print str(e)
 else:
-    terminal.options['host'] = args.connect
-    terminal.options['port'] = args.port
     terminal.welcome()
     
     # Client Mode
     client = NSTSClient(remote_host = args.connect, remote_port = args.port, ipv6 = args.ipv6)
     client.connect()
-    terminal.client_connected()
+
+    terminal.client_connected(client.connection)
     
     # Load a suite from command line or file
     if args.tests is not None:

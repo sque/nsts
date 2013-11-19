@@ -14,12 +14,11 @@ class ClientTerminalOptionsDescriptor(OptionsDescriptor):
     
     def __init__(self):
         super(ClientTerminalOptionsDescriptor, self).__init__()
-        self.add_option('host', 'Host that client connected at', unicode)
-        self.add_option('port', 'Port that client connected at', int)
         self.add_option('suite', 'Suite that is executed', unicode)
         self.add_option('samples', 'Default samples', int)
         self.add_option('interval', 'Default interval', int)
         self.add_option('verbose', 'Verbose level', bool, False)
+        self.add_option("suite_filename", "Suite filename", str)
 
 class ClientTerminal(object):
     '''
@@ -43,7 +42,7 @@ class ClientTerminal(object):
         '''
         pass
     
-    def client_connected(self):
+    def client_connected(self, connection):
         '''
         Called when client managed to connect
         '''
@@ -118,11 +117,20 @@ class BasicTerminal(ClientTerminal):
         print "http://github.com/sque/nsts"
         print ""
         
-    def client_connected(self):
-        print "Started at:", datetime.datetime.now()
-        print "Server    : {0}:{1}".format(self.options['host'], self.options['port'])
+    def client_connected(self, connection):
+        print "Started at        : {0}".format(datetime.datetime.now())
+        print "Client <=> Server : {l[0]}:{l[1]} <=> {r[0]}:{r[1]} ".format(
+                    l = connection.socket.getsockname(),
+                    r = connection.socket.getpeername())
+        if connection.is_ipv6():
+            proto = 'v6'
+        else:
+            proto = 'v4'
+        print "IP Protocol       : {0}".format(proto)
+        if self.options['suite_filename']:
+            print "Suite             : {0}".format(self.options['suite_filename'])
         print "{0:-<{width}}".format("",width = self.width)
-        #print " MultiSampling: {0}".format(self.options['samples'])
+        
     
     def list_profiles(self, profiles):
         # List tests mode
