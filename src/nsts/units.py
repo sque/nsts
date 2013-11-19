@@ -274,5 +274,26 @@ class Packet(Unit):
                       (1 , 'p')
                      ]
         super(Packet, self).__init__("Packets", initial_value, magnitudes)
-        
 
+class Byte(Unit):
+    '''
+    Byte measurement unit
+    '''
+    
+    def __init__(self, initial_value = 0):
+        magnitudes = [
+                      (1,     'bytes'),
+                      (10**3, 'KBytes'),
+                      (10**6, 'MBytes'),
+                      (10**9, 'GBytes'),
+                      (10**12,'TBytes')]
+        
+        alt_magnitude_names = {
+                'bytes' : ['Byte', 'B'],
+                'KBytes' : ['KByte', 'Kbyte', 'kbyte', 'KB'],
+                'MBytes' : ['MByte', 'Mbyte', 'MB'],
+                'GBytes' : ['GByte', 'Gbyte', 'GB'],
+                'TBytes' : ['TByte', 'Tbyte', 'TB'],
+                }
+        
+        super(Byte, self).__init__('Information Quantity', initial_value, magnitudes, alt_magnitude_names)

@@ -246,9 +246,27 @@ class TestByteRate(unittest.TestCase):
         self.assertEqual(units.ByteRate('10 TBps').raw_value, 10*(10**12))
         self.assertEqual(units.ByteRate('10 TBytes/s').raw_value, 10*(10**12))
         self.assertEqual(units.ByteRate('10 TByte/s').raw_value, 10*(10**12))
-        
 
-class TestStorage(unittest.TestCase):
+class TestByte(unittest.TestCase):
     
-    def test_missing(self):
-        self.assertTrue(False, "We need to implement a storage unit. Use it as option to apache.")
+    def test_constructor(self):
+        self.assertEqual(units.Byte('1').raw_value, 1)
+        self.assertEqual(units.Byte('10 B').raw_value, 10)
+        self.assertEqual(units.Byte('10 KBytes').raw_value, 10000)
+        self.assertEqual(units.Byte('10 Kbyte').raw_value, 10000)
+        self.assertEqual(units.Byte('10 kbyte').raw_value, 10000)
+        self.assertEqual(units.Byte('10 KB').raw_value, 10000)
+        self.assertEqual(units.Byte('10 KByte').raw_value, 10000)
+        self.assertEqual(units.Byte('10 MB').raw_value, 10*(10**6))
+        self.assertEqual(units.Byte('10 MBytes').raw_value, 10*(10**6))
+        self.assertEqual(units.Byte('10 MByte').raw_value, 10*(10**6))
+        self.assertEqual(units.Byte('10 Mbyte').raw_value, 10*(10**6))
+        self.assertEqual(units.Byte('10 GB').raw_value, 10*(10**9))
+        self.assertEqual(units.Byte('10 GBytes').raw_value, 10*(10**9))
+        self.assertEqual(units.Byte('10 GByte').raw_value, 10*(10**9))
+        self.assertEqual(units.Byte('10 Gbyte').raw_value, 10*(10**9))
+        self.assertEqual(units.Byte('10 TB').raw_value, 10*(10**12))
+        self.assertEqual(units.Byte('10 TBytes').raw_value, 10*(10**12))
+        self.assertEqual(units.Byte('10 TByte').raw_value, 10*(10**12))
+        self.assertEqual(units.Byte('10 Tbyte').raw_value, 10*(10**12))
+
