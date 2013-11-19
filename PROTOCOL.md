@@ -44,7 +44,16 @@ PARAMS = {
 ```
 A reply that last message was received and executed successfully.
 
-2.3 "CHECKPROFILE"
+2.3 "ERROR"
+---------------------------------
+```
+PARAMS = {
+    "reason"        // (string) A reason why it was failed
+}
+```
+A reply that last message was received but there was an error executing.
+
+2.4 "CHECKPROFILE"
 --------------------------------- 
 ```
 PARAMS = {
@@ -56,7 +65,7 @@ and supported execution on the other end.
 
 A "PROFILEINFO" response is expected.
 
-2.4 "PROFILEINFO"
+2.5 "PROFILEINFO"
 ---------------------------------
 ```
 PARAMS = {
@@ -68,7 +77,7 @@ PARAMS = {
 ```
 A message containing information about the status of a profile.
 
-2.5 "INSTANTIATEPROFILE"
+2.6 "INSTANTIATEPROFILE"
 ---------------------------------
 ```
 PARAMS = {
@@ -80,9 +89,9 @@ PARAMS = {
 ```
 Requests the other end to prepare a profile for execution.
 
-An OK reply is expected.
+An OK/ERROR reply is expected.
 
-2.6 "EXECUTIONFINISHED"
+2.7 "EXECUTIONFINISHED"
 ---------------------------------
 ```
 PARAMS = {

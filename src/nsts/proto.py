@@ -6,7 +6,7 @@ Created on Nov 2, 2013
 import  pickle, base64, logging, socket
 
 # PROTOCOL VERSION
-VERSION = 0
+VERSION = 1
 
 # Module logger
 logger = logging.getLogger("proto")

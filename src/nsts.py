@@ -52,7 +52,7 @@ parser.add_argument("-d", "--debug",
 parser.add_argument("--samples", 
                     help="how many times to execute a test (default 1)",
                     default=1, type=int)
-parser.add_argument("--sample-interval",
+parser.add_argument("--interval",
                     help="The interval time between samples in seconds. (default 0.0sec)",
                     default = 0.0, type=float)
 group = parser.add_mutually_exclusive_group()
@@ -68,7 +68,7 @@ logging.basicConfig(level = args.debug)
 # Prepare terminal
 terminal = BasicTerminal()
 terminal.options['samples'] = args.samples
-terminal.options['interval'] = args.sample_interval
+terminal.options['interval'] = args.interval
 terminal.options['verbose'] = args.verbose
 terminal.options['suite_filename'] = '' if not args.suite else args.suite
 
@@ -101,7 +101,7 @@ else:
     if args.tests is not None:
         spsuite = suite.parse_command_line(args.tests)
         spsuite.options['samples'] = args.samples
-        spsuite.options['interval'] = args.sample_interval
+        spsuite.options['interval'] = args.interval
     elif args.suite is not None:
         try:
             spsuite = suite.load_file(args.suite)
