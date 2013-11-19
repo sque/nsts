@@ -154,11 +154,7 @@ class WgetExecutorClient(SubProcessExecutorBase):
         self.basic_argumnets = [
                 "--no-cache",
                 "-O", "/dev/null"
-                #"--report-speed=bits"
                 ]
-        self.options = {
-                'time_to_run' : 0.1
-                }
 
     def parse_output(self):
         output = self.get_subprocess_output()
@@ -188,22 +184,30 @@ class WgetExecutorClient(SubProcessExecutorBase):
         self.send_msg("STARTSERVER")
         self.wait_msg_type("OK")
         
-        # Run wget on incremental sizes
-        filesize = 1024*1024
-        count = 0
-        while True:
-            filename = "file_{0}".format(count)
+        filesize = self.context.options['filesize'].raw_value
+        
+        
+        if (self.context.options['mode'] == 'time'):
+            # Run wget on incremental sizes
+            count = 0
+            while True:
+                filename = "file_{0}".format(count)
+                self.send_msg("GENERATEFILE", {'filename' : filename, 'size' : filesize})
+                self.wait_msg_type('OK') 
+                speed = self.download_file(filename)
+    
+                # Ensure that the achieved speed was 10 times smaller than file size
+                if speed.raw_value < (filesize /self.context.options['downloadtime'].raw_value):
+                    break;
+                self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
+                filesize = int(speed.raw_value * self.context.options['downloadtime'].raw_value * 1.5)
+                self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
+                count += 1
+        else:
+            filename = "file_static"
             self.send_msg("GENERATEFILE", {'filename' : filename, 'size' : filesize})
             self.wait_msg_type('OK') 
             speed = self.download_file(filename)
-
-            # Ensure that the achieved speed was 10 times smaller than file size
-            if speed.raw_value < (filesize /self.options['time_to_run']):
-                break;
-            self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
-            filesize = int(speed.raw_value * self.options['time_to_run'] * 1.5)
-            self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
-            count += 1
 
         self.store_result('transfer_rate', speed)
 
@@ -221,10 +225,10 @@ class WgetExecutorClient(SubProcessExecutorBase):
                 port = self.context.options['port'])
     
     def is_supported(self):
-        return True
+        return SubProcessExecutorBase.is_supported(self)
     
     def cleanup(self):
-        return True
+        SubProcessExecutorBase.cleanup(self)
 
 class ApacheProfile(Profile):
     
@@ -235,7 +239,14 @@ class ApacheProfile(Profile):
             "Measure the performance of HTTP, by setting up a sandboxed apache server and download arbitrary binary files."
             )
         self.add_result("transfer_rate", "TransferRate", units.ByteRate)
-        self.supported_options.add_option("port", "Apache listen port", int, 58338)
-        #self.supported_options.add_option("filesize", "The size of file to download", int, 1024*1024)
-
+        self.supported_options.add_option("port", "Apache listen port",
+                    unit_type = int, default = 58338)
+        self.supported_options.add_option('mode', '"size" to download a specific filesize,'
+                    ' "time" to download for a specified period',
+                    unit_type = str, default = 'size')
+        self.supported_options.add_option("filesize", "The size of file to download (size mode), or the initial filesize to try.(time mode)",
+                    unit_type = units.Byte, default = "1 Mbyte")
+        self.supported_options.add_option('downloadtime', 'Minimum time to download a continuous file (time mode)',
+                    unit_type = units.Time, default = '10 sec')
+        
 registry.register(ApacheProfile())

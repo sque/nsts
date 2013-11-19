@@ -127,7 +127,7 @@ class BasicTerminal(ClientTerminal):
     def list_profiles(self, profiles):
         # List tests mode
         for profile in profiles:
-            print "{p.name} [{p.id}]".format(p = profile)
+            print "{p.name} | id:{p.id}".format(p = profile)
             print "{0:-<{width}}".format("",width = self.width)
             if profile.description:
                 print profile.description
