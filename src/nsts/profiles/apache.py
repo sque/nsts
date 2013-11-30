@@ -220,9 +220,12 @@ class WgetExecutorClient(SubProcessExecutorBase):
         
     
     def prepare(self):
-        self.url_base = "http://{remote}:{port}/".format(
-                remote = self.context.connection.remote_addr,
-                port = self.context.options['port'])
+        host = self.context.connection.remote_addr
+        if self.context.connection.is_ipv6():
+            host = "[{0}]".format(self.context.connection.remote_addr)
+        else:
+            host = self.context.connection.remote_addr
+        self.url_base = "http://{remote}:{port}/".format(remote = host,port = self.context.options['port'])
     
     def is_supported(self):
         return SubProcessExecutorBase.is_supported(self)
