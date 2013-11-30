@@ -59,6 +59,7 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument("--tests", help="a comma separated list of all tests to execute")
 group.add_argument("--suite", help="a file with a suite to run")
 parser.add_argument("-6", "--ipv6",  help="use IPv6 protocol for benchmarking", action="store_true")
+parser.add_argument("-n", "--numerical-addr", help="show numerical addressed, do not try to reverse lookup addresses", action="store_true")
 parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 args = parser.parse_args()
 
@@ -71,6 +72,7 @@ terminal.options['samples'] = args.samples
 terminal.options['interval'] = args.interval
 terminal.options['verbose'] = args.verbose
 terminal.options['suite_filename'] = '' if not args.suite else args.suite
+terminal.options['numerical_addr'] = args.numerical_addr
 
 if args.list_profiles:
     terminal.welcome()

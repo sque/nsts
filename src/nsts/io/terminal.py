@@ -3,7 +3,7 @@ Created on Nov 6, 2013
 
 @author: Konstantinos Paliouras <sque '' tolabaki '' gr>
 '''
-import datetime, sys
+import datetime, sys, socket
 from nsts import core
 from nsts.speedtest import SpeedTest, SpeedTestSuite
 from nsts.options import OptionsDescriptor, Options
@@ -19,6 +19,7 @@ class ClientTerminalOptionsDescriptor(OptionsDescriptor):
         self.add_option('interval', 'Default interval', int)
         self.add_option('verbose', 'Verbose level', bool, False)
         self.add_option("suite_filename", "Suite filename", str)
+        self.add_option('numerical_addr', '', bool, False)
 
 class ClientTerminal(object):
     '''
@@ -118,10 +119,16 @@ class BasicTerminal(ClientTerminal):
         print ""
         
     def client_connected(self, connection):
+        if self.options['numerical_addr']:
+            local = connection.socket.getsockname()
+            remote = connection.socket.getpeername()
+        else:
+            local = [socket.gethostbyaddr(connection.socket.getsockname()[0])[0],
+                     connection.socket.getsockname()[1]]
+            remote = [socket.gethostbyaddr(connection.socket.getpeername()[0])[0],
+                     connection.socket.getpeername()[1]] 
         print "Started at        : {0}".format(datetime.datetime.now())
-        print "Client <=> Server : {l[0]}:{l[1]} <=> {r[0]}:{r[1]} ".format(
-                    l = connection.socket.getsockname(),
-                    r = connection.socket.getpeername())
+        print "Client <=> Server : {l[0]}:{l[1]} <=> {r[0]}:{r[1]} ".format(l = local, r = remote)
         if connection.is_ipv6():
             proto = 'v6'
         else:
