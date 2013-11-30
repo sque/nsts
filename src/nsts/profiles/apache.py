@@ -197,10 +197,16 @@ class WgetExecutorClient(SubProcessExecutorBase):
                 speed = self.download_file(filename)
     
                 # Ensure that the achieved speed was 10 times smaller than file size
-                if speed.raw_value < (filesize /self.context.options['downloadtime'].raw_value):
+                # or reached max file size
+                if filesize >= self.context.options['maxfilesize'].raw_value or \
+                    speed.raw_value < (filesize /self.context.options['downloadtime'].raw_value):
                     break;
                 self.logger.debug("Downloaded {0} bytes with {1} speed".format(filesize, speed))
-                filesize = int(speed.raw_value * self.context.options['downloadtime'].raw_value * 1.5)
+                
+                # Calculate new filesize and ensure that we don't exceeded cap size
+                filesize = min(
+                    int(speed.raw_value * self.context.options['downloadtime'].raw_value * 1.5),
+                    self.context.options['maxfilesize'].raw_value)
                 self.logger.debug("Increased file_size to  {0} bytes".format(filesize, speed))
                 count += 1
         else:
@@ -249,6 +255,8 @@ class ApacheProfile(Profile):
                     unit_type = str, default = 'size')
         self.supported_options.add_option("filesize", "The size of file to download (size mode), or the initial filesize to try.(time mode)",
                     unit_type = units.Byte, default = "1 Mbyte")
+        self.supported_options.add_option("maxfilesize", "The maximum filesize to download (time mode)",
+                    unit_type = units.Byte, default = "100 Mbyte")
         self.supported_options.add_option('downloadtime', 'Minimum time to download a continuous file (time mode)',
                     unit_type = units.Time, default = '10 sec')
         
