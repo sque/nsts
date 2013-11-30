@@ -46,25 +46,34 @@ group.add_argument("-c", "--connect", help="connect to server.", type=str)
 group.add_argument("-s","--server", help="start in server mode.", action="store_true")
 list_tests = group.add_argument("--list-profiles", help="list all available benchmarking profiles.", action="store_true")
 parser.add_argument("-p", "--port", help="server/client port.", type=int, default=core.DEFAULT_PORT)
-parser.add_argument("-d", "--debug", 
-                    help="select level of logging. 0 will log everything (default {0})".format(logging.WARNING), 
-                    type=int, default = logging.WARNING)
+parser.add_argument("-d", "--debug", type=int,
+                    help="select level of logging. 0 will log everything", )
 parser.add_argument("--samples", 
                     help="how many times to execute a test (default 1)",
                     default=1, type=int)
 parser.add_argument("--interval",
                     help="The interval time between samples in seconds. (default 0.0sec)",
                     default = 0.0, type=float)
+parser.add_argument("--log-file", 
+                    help="file to save logging output", type=str)
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--tests", help="a comma separated list of all tests to execute")
 group.add_argument("--suite", help="a file with a suite to run")
-parser.add_argument("-6", "--ipv6",  help="use IPv6 protocol for benchmarking", action="store_true")
+parser.add_argument("-6", "--ipv6", help="use IPv6 protocol for benchmarking", action="store_true")
 parser.add_argument("-n", "--numerical-addr", help="show numerical addressed, do not try to reverse lookup addresses", action="store_true")
 parser.add_argument("-v", "--verbose", help="enable verbose output", action="store_true")
 args = parser.parse_args()
 
-# Prepare logging
-logging.basicConfig(level = args.debug)
+# Initialize Logging
+log_params = {
+    'level' : logging.INFO if args.log_file else logging.WARNING,
+    'format' : '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
+    }
+if args.log_file:
+    log_params['filename'] = args.log_file
+if args.debug is not None:
+    log_params['level'] = args.debug 
+logging.basicConfig(**log_params)
 
 # Prepare terminal
 terminal = BasicTerminal()

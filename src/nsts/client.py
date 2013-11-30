@@ -42,9 +42,11 @@ class NSTSClient(object):
         try:
             self.socket.connect((self.remote_host, self.remote_port))
         except socket.error , msg:
-            print 'Connection failed. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
+            error_msg = 'Connection failed. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
+            print error_msg
+            logger.critical(error_msg)
             sys.exit()
-        logger.debug("TCP connection established.")
+        logger.info("Established connection to {0}:{1}.".format(self.remote_host, self.remote_port))
 
         remote_ip = self.socket.getpeername()[0]
         self.connection = NSTSConnection(self.socket)
@@ -77,7 +79,7 @@ class NSTSClient(object):
             raise NotConnectedError()
         
         terminal.profile_execution_started(ctx)
-        logger.info("Requested to execute profile '{0}'".format(ctx.name))
+        logger.info("Starting execute profile '{0}'".format(ctx.name))
         
         assert isinstance(ctx, base.ProfileExecution)
         
@@ -88,8 +90,8 @@ class NSTSClient(object):
             logger.debug("Checking profile '{0}'".format(ctx.name))
             
             if not executor.is_supported():
-                logger.info("Profile '{0}' is not supported locally.".format(executor.name))
-                raise ProtocolError("Test {0} is not supported locally".format(ctx.name))
+                logger.warning("Profile '{0}' is not supported locally.".format(executor.name))
+                raise ProtocolError("Profile {0} is not supported locally".format(ctx.name))
             self.check_profile(ctx.profile.id)
 
             # Instantiate profile remotely
