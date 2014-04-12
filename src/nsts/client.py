@@ -7,7 +7,7 @@ Created on Nov 4, 2013
 
 import socket, sys, logging, time
 from proto import NSTSConnection, ProtocolError
-from nsts.profiles import base, registry
+from nsts.profiles import base
 from nsts.speedtest import SpeedTest, SpeedTestSuite
 from nsts.profiles.base import ProfileExecution
 from nsts import core

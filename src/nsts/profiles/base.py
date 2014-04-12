@@ -219,6 +219,8 @@ class Profile(object):
     that invoke the test.
     '''
     
+    __registered_profiles = {}
+    
     def __init__(self, test_id, name, send_executor_class, receive_executor_class, description = None):
         if not issubclass(send_executor_class, ProfileExecutor) or \
             not issubclass(receive_executor_class, ProfileExecutor):
@@ -230,6 +232,14 @@ class Profile(object):
         self.__supported_results = OrderedDict()
         self.__supported_options = OptionsDescriptor()
         self.__description = description
+        
+        # Add profile instance in the global list
+        self.__registered_profiles[self.id] = self
+    
+    @staticmethod
+    def get_all_profiles():
+        return Profile.__registered_profiles
+    
     
     @property
     def id(self):

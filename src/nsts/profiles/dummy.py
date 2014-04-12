@@ -7,7 +7,6 @@ Created on Nov 4, 2013
 
 import random
 from base import ProfileExecutor, Profile
-from registry import register
 from nsts import units
 
 
@@ -47,33 +46,17 @@ class DummyTestReceiver(ProfileExecutor):
 
     def cleanup(self):
         pass
-    
-class DummyProfile(Profile):
-    def __init__(self):
-        super(DummyProfile, self).__init__(
-                "dummy",
-                "Dummy SpeedTest",
-                DummyTestSender, DummyTestReceiver,
-                "A truly dummy test that returns some random numbers.")
-        self.supported_options.add_option(
-                'min_transfer',
-                'The minimum random value of transfer',
-                units.BitRate, default =0)
-        self.supported_options.add_option(
-                'max_transfer',
-                'The maximum random value of transfer',
-                units.BitRate, default =1)
-        self.supported_options.add_option(
-                'min_time',
-                'The minimum random value of time',
-                units.Time, default =0)
-        self.supported_options.add_option(
-                'max_time',
-                'The maximum random value of time',
-                units.Time, default =1)
 
-        self.add_result('random_transfer', 'Random Transfer', units.BitRate)
-        self.add_result('random_time', 'Random Time', units.Time)
-        
-
-register(DummyProfile())
+p = Profile("dummy", "Dummy SpeedTest", DummyTestSender, DummyTestReceiver,
+        "A truly dummy test that returns some random numbers.")
+p.supported_options.add_option('min_transfer','The minimum random value of transfer',
+        units.BitRate, default =0)
+p.supported_options.add_option('max_transfer', 'The maximum random value of transfer',
+        units.BitRate, default =1)
+p.supported_options.add_option(
+        'min_time', 'The minimum random value of time',
+        units.Time, default =0)
+p.supported_options.add_option('max_time', 'The maximum random value of time',
+        units.Time, default =1)
+p.add_result('random_transfer', 'Random Transfer', units.BitRate)
+p.add_result('random_time', 'Random Time', units.Time)

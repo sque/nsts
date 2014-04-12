@@ -10,7 +10,6 @@ import logging, argparse, sys
 from nsts.client import NSTSClient
 from nsts.server import NSTSServer
 from nsts.profiles import *
-from nsts.profiles import registry
 from nsts.profiles.base import SpeedTestRuntimeError
 from nsts.io import suite
 from nsts.io.terminal import BasicTerminal
@@ -86,7 +85,7 @@ terminal.options['numerical_addr'] = args.numerical_addr
 
 if args.list_profiles:
     terminal.welcome()
-    terminal.list_profiles(registry.get_all())
+    terminal.list_profiles(base.Profile.get_all_profiles().values())
     terminal.epilog()
 
     

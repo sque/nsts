@@ -8,8 +8,7 @@ Created on Nov 4, 2013
 import socket, sys, logging
 from nsts import proto, core
 from nsts.speedtest import SpeedTest, SpeedTestSuite
-from nsts.profiles import registry
-from nsts.profiles.base import ExecutionDirection, ProfileExecution
+from nsts.profiles.base import ExecutionDirection, ProfileExecution, Profile
 from nsts.proto import NSTSConnection
 
 logger = logging.getLogger("proto")
@@ -29,7 +28,7 @@ class NSTSServer(object):
         '''
         Serve client command of checking profile status
         '''
-        installed = registry.is_registered(test_id)
+        installed = test_id in Profile.get_all_profiles()
         supported = False
         if installed:
             supported = True 
@@ -84,7 +83,7 @@ class NSTSServer(object):
                 
             elif msg.type == "INSTANTIATEPROFILE":
                 # Run a profile
-                profile = registry.get_profile(msg.params['profile_id'])
+                profile = Profile.get_all_profiles()[msg.params['profile_id']]
                 direction = ExecutionDirection(msg.params["direction"])
                 execution_id = msg.params['execution_id']
                 options = msg.params['options']

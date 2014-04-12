@@ -6,7 +6,6 @@ Created on Nov 6, 2013
 '''
 import time
 from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile
-from nsts.profiles import registry
 from nsts import units
 from subprocess import SubProcessExecutorBase
 
@@ -68,12 +67,6 @@ class PingExecutorReceiver(ProfileExecutor):
     def cleanup(self):
         return True
 
-class PingProfile(Profile):
-    
-    def __init__(self):
-        super(PingProfile, self).__init__(
-                "ping", "Ping", PingExecutorSender, PingExecutorReceiver,
-                description = 'A wrapper for "ping" system tool to measure round trip latency')
-        self.add_result("rtt", "RTT", units.Time)
-
-registry.register(PingProfile())
+p = Profile("ping", "Ping", PingExecutorSender, PingExecutorReceiver,
+            description = 'A wrapper for "ping" system tool to measure round trip latency')
+p.add_result("rtt", "RTT", units.Time)

@@ -5,8 +5,7 @@ Created on Nov 4, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 import time
-from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile
-from nsts.profiles import registry
+from nsts.profiles.base import Profile
 from nsts import units
 from subprocess import SubProcessExecutorBase
 
@@ -90,35 +89,23 @@ class IperfJitterExecutorSender(IperfExecutorSender):
         self.store_result('lost_packets', units.Packet(received[10]))
         self.store_result('total_packets', units.Packet(received[11]))
         self.store_result('percentage_lost', units.Percentage(received[12]))
-        
-class IperfTCPProfile(Profile):
-    
-    def __init__(self):
-        super(IperfTCPProfile, self).__init__(
-            "iperf_tcp",
-            "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver,
-            'Wrapper for "iperf" benchmark tool, to measure raw TCP throughput.')
-        self.add_result("transfer_rate", "Transfer Rate", units.BitRate)
-        self.supported_options.add_option(
-                'time', 'time to transmit for', units.Time, default=10)
-        
-class IperfJitterProfile(Profile):
-    
-    def __init__(self):
 
-        super(IperfJitterProfile, self).__init__(
-                "iperf_jitter", "Jitter (iperf)",
-                IperfJitterExecutorSender, IperfExecutorReceiver,
-                'Wrapper for "iperf" benchmark tool, to measure latency jittering on UDP transmissions')
-        self.add_result("transfer_rate", "Trans. Rate", units.BitRate)
-        self.add_result("jitter", "Jitter", units.Time)
-        self.add_result("lost_packets", "Lost Pck", units.Packet)
-        self.add_result("total_packets", "Total Pck", units.Packet)
-        self.add_result("percentage_lost", "Lost Pck %", units.Percentage)
-        self.supported_options.add_option(
-                'time', 'time to transmit for', units.Time, default=10)
-        self.supported_options.add_option(
-                'rate', 'rate to send udp packages', units.BitRate, default="1 Mbps")
+# TCP Profile
+p = Profile("iperf_tcp", "TCP (iperf)", IperfExecutorSender, IperfExecutorReceiver,
+        'Wrapper for "iperf" benchmark tool, to measure raw TCP throughput.')
+p.add_result("transfer_rate", "Transfer Rate", units.BitRate)
+p.supported_options.add_option(
+         'time', 'time to transmit for', units.Time, default=10)
 
-registry.register(IperfTCPProfile())
-registry.register(IperfJitterProfile())
+# Jitter profile
+p = Profile("iperf_jitter", "Jitter (iperf)",
+        IperfJitterExecutorSender, IperfExecutorReceiver,
+        description = 'Wrapper for "iperf" benchmark tool, to measure latency jittering on UDP transmissions')
+p.add_result("transfer_rate", "Trans. Rate", units.BitRate)
+p.add_result("jitter", "Jitter", units.Time)
+p.add_result("lost_packets", "Lost Pck", units.Packet)
+p.add_result("total_packets", "Total Pck", units.Packet)
+p.add_result("percentage_lost", "Lost Pck %", units.Percentage)
+p.supported_options.add_option('time', 'time to transmit for', units.Time, default=10)
+p.supported_options.add_option('rate', 'rate to send udp packages', units.BitRate, default="1 Mbps")
+

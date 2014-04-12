@@ -5,8 +5,7 @@ Created on Nov 2, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 from nsts.speedtest import SpeedTestSuite, SpeedTest
-from nsts.profiles import registry 
-from nsts.profiles.base import ExecutionDirection
+from nsts.profiles.base import ExecutionDirection, Profile
 import ConfigParser
 
 class ParseError(IOError):
@@ -31,7 +30,7 @@ def parse_command_line(tests):
             parsed_profiles.append([profile_id, direction])
             
     for p in parsed_profiles:
-        profile = registry.get_profile(p[0])
+        profile = Profile.get_all_profiles()[p[0]]
         suite.add_test(SpeedTest(profile, p[1]))
     return suite
 
@@ -61,7 +60,7 @@ def load_file(suite_filename):
             direction = [ExecutionDirection('s'), ExecutionDirection('r')]
         
         prof_id = config.get(test_id, 'profile')
-        profile = registry.get_profile(prof_id)
+        profile = Profile.get_all_profiles()[prof_id]
         config.remove_option(test_id, 'profile')
 
         

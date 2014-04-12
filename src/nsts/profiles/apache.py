@@ -5,8 +5,7 @@ Created on Nov 6, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 import time, random, hashlib, os, signal, re
-from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile
-from nsts.profiles import registry
+from nsts.profiles.base import SpeedTestRuntimeError, Profile
 from nsts import units, utils
 from subprocess import SubProcessExecutorBase
 
@@ -240,25 +239,18 @@ class WgetExecutorClient(SubProcessExecutorBase):
     def cleanup(self):
         SubProcessExecutorBase.cleanup(self)
 
-class ApacheProfile(Profile):
-    
-    def __init__(self):
-        super(ApacheProfile, self).__init__(
-            "apache", "HTTP (apache)",
-            ApacheExecutorServer, WgetExecutorClient,
+p = Profile("apache", "HTTP (apache)", ApacheExecutorServer, WgetExecutorClient,
             "Measure the performance of HTTP, by setting up a sandboxed apache server and download arbitrary binary files."
             )
-        self.add_result("transfer_rate", "TransferRate", units.ByteRate)
-        self.supported_options.add_option("port", "Apache listen port",
-                    unit_type = int, default = 58338)
-        self.supported_options.add_option('mode', '"size" to download a specific filesize,'
-                    ' "time" to download for a specified period',
-                    unit_type = str, default = 'size')
-        self.supported_options.add_option("filesize", "The size of file to download (size mode), or the initial filesize to try.(time mode)",
-                    unit_type = units.Byte, default = "1 Mbyte")
-        self.supported_options.add_option("maxfilesize", "The maximum filesize to download (time mode)",
-                    unit_type = units.Byte, default = "100 Mbyte")
-        self.supported_options.add_option('downloadtime', 'Minimum time to download a continuous file (time mode)',
-                    unit_type = units.Time, default = '10 sec')
-        
-registry.register(ApacheProfile())
+p.add_result("transfer_rate", "TransferRate", units.ByteRate)
+p.supported_options.add_option("port", "Apache listen port",
+            unit_type = int, default = 58338)
+p.supported_options.add_option('mode', '"size" to download a specific filesize,'
+            ' "time" to download for a specified period',
+            unit_type = str, default = 'size')
+p.supported_options.add_option("filesize", "The size of file to download (size mode), or the initial filesize to try.(time mode)",
+            unit_type = units.Byte, default = "1 Mbyte")
+p.supported_options.add_option("maxfilesize", "The maximum filesize to download (time mode)",
+            unit_type = units.Byte, default = "100 Mbyte")
+p.supported_options.add_option('downloadtime', 'Minimum time to download a continuous file (time mode)',
+            unit_type = units.Time, default = '10 sec')
