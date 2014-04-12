@@ -1,7 +1,8 @@
 '''
 Created on Nov 14, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 from collections import OrderedDict
 

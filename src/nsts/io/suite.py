@@ -1,7 +1,8 @@
 '''
 Created on Nov 2, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 from nsts.speedtest import SpeedTestSuite, SpeedTest
 from nsts.profiles import registry 

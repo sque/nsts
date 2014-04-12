@@ -1,7 +1,8 @@
 '''
 Created on Nov 12, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 
 from base import Profile

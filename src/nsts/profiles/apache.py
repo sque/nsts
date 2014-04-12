@@ -1,7 +1,8 @@
 '''
 Created on Nov 6, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 import time, random, hashlib, os, signal, re
 from nsts.profiles.base import SpeedTestRuntimeError, ProfileExecutor, Profile

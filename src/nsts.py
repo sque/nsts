@@ -2,7 +2,8 @@
 '''
 Created on Nov 2, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 
 import logging, argparse, sys

@@ -1,3 +1,10 @@
+'''
+Created on Nov 12, 2013
+
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
+'''
+
 from __future__ import absolute_import
 import unittest
 

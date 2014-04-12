@@ -1,7 +1,8 @@
 '''
 Created on Nov 6, 2013
 
-@author: Konstantinos Paliouras <sque '' tolabaki '' gr>
+@license: GPLv3
+@author: NSTS Contributors (see AUTHORS.txt)
 '''
 from __future__ import absolute_import
 from .base import ProfileExecutor
