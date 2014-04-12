@@ -5,7 +5,9 @@ Created on Nov 12, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 
-from __future__ import absolute_import
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
 import unittest
 
 from nsts.options import OptionValueDescriptor, OptionsDescriptor, Options, UnknownOptionError
