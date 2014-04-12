@@ -46,12 +46,12 @@ python nsts.py --help
 
 To run NSTS you have to run the server in one endpoint and the client in the other endpoint of the link that you want to benchmark.
 
-## Example: Get list of installed profiles and their options
+### Example: Get list of installed profiles and their options
 ```
 python nsts.py --list-profiles
 ```
 
-## Example: Run simple TCP throught
+### Example: Run simple TCP throught
 
 Server:
 ```
@@ -63,7 +63,7 @@ Client:
 python nsts.py -c servername --tests=iperf_tcp
 ```
 
-## Example: Run transmission latency tests
+### Example: Run transmission latency tests
 
 Server:
 ```
@@ -75,7 +75,7 @@ Client:
 python nsts.py -c servername --tests=iperf_jitter-s,ping-s
 ```
 
-## Example: Run a suite
+### Example: Run a suite
 
 Server:
 ```
@@ -87,7 +87,7 @@ Client:
 python nsts.py -c servername --suite=filename.ini
 ```
 
-## Example: Run on IPv6 and different port
+### Example: Run on IPv6 and different port
 
 Server:
 ```
