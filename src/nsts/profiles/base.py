@@ -35,21 +35,21 @@ class ResultValueDescriptor(object):
     @property
     def id(self):
         '''
-        Get the id of this result
+        The unique id in profile of this entry
         '''
         return self.__id
-    
+
     @property
     def name(self):
         '''
-        Get a friendly name of this entry
+        The friendly name of this entry
         '''
         return self.__name
-    
+
     @property
     def unit_type(self):
         '''
-        Get the unit type of this entry
+        The unit type of this entry
         '''
         return self.__unit_type
 
@@ -57,7 +57,7 @@ class ExecutionDirection(object):
     '''
     Encapsulates the logic of data direction in execution.
     '''
-    
+
     def __init__(self, direction):
         '''
         Create an initialized object
@@ -70,19 +70,19 @@ class ExecutionDirection(object):
             self.__direction = 'receive'
         else:
             raise ValueError("Direction '{0}' is not a valid direction.".format(direction))
-    
+
     def is_send(self):
         '''
         Check if it is sending direction
         '''
         return self.__direction == "send"
-    
+
     def is_receive(self):
         '''
         Check if it is receiving direction
         '''
         return self.__direction == "receive"
-    
+
     def opposite(self):
         '''
         Get ExecutionDirection object of the
@@ -92,18 +92,18 @@ class ExecutionDirection(object):
             return self.__class__("receive")
         else:
             return self.__class__("send")
-    
+
     def __eq__(self, other):
         assert type(other) == type(self)
         return self.__direction == other.__direction
-    
+
     def __ne__(self, other):
         assert type(other) == type(self)
         return self.__direction != other.__direction
-    
+
     def __str__(self):
         return self.__direction
-    
+
     def __repr__(self):
         return self.__direction
 
@@ -111,20 +111,20 @@ class ProfileExecutor(object):
     '''
     Base class for implementing a profile peer executor
     '''
-    
+
     def __init__(self, context):
         '''
         @param context The execution context
         '''
         if not isinstance(context, ProfileExecution):
             raise TypeError("{0} is not instance of ProfileExecution".format(context))
-        
+
         self.__execution_ctx = context
-        self.logger = logging.getLogger("profile.{0}".format(self.profile.id)) 
+        self.logger = logging.getLogger("profile.{0}".format(self.profile.id))
         self.__results = OrderedDict()
         for rid in self.profile.supported_results.keys():
             self.__results[rid] = None
-        
+
     @property
     def profile(self):
         '''
@@ -137,44 +137,48 @@ class ProfileExecutor(object):
         '''
         Get results of the test executor. This function
         returns the value of self.results.
-        ''' 
+        '''
         return self.__results
-    
+
     @property
     def context(self):
         '''
         Get the execution context for this executor instance
         '''
         return self.__execution_ctx
-    
+
     def send_msg(self, msg_type, msg_params = {}):
         '''
         Wrapper for sending messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.context.connection.send_msg("__{0}_{1}".format(self.profile.id, msg_type), msg_params)
-    
+        return self.context.connection.send_msg("__{0}_{1}"
+                .format(self.profile.id, msg_type), msg_params)
+
     def wait_msg_type(self, expected_type):
         '''
         Wrapper for receiving messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.context.connection.wait_msg_type("__{0}_{1}".format(self.profile.id, expected_type))
-    
+        return self.context.connection.wait_msg_type("__{0}_{1}"
+                .format(self.profile.id, expected_type))
+
     def store_result(self, result_id, value):
         '''
         Store a result value in results container
         '''
         if not self.__results.has_key(result_id):
-            raise ValueError("Cannot store results for unknown result id '{0}'".format(result_id))
-        self.__results[result_id] = self.profile.supported_results[result_id].unit_type(value)
-    
+            raise ValueError("Cannot store results for unknown result id '{0}'"
+                    .format(result_id))
+        self.__results[result_id] = self.profile.supported_results[result_id]\
+            .unit_type(value)
+
     def propagate_results(self):
         '''
         Propagate results to the other executors
         '''
         self.send_msg("RESULTS", {"results" : self.results})
-        
+
     def collect_results(self):
         '''
         Collect results that where propagated by the other
@@ -182,45 +186,47 @@ class ProfileExecutor(object):
         '''
         results_msg = self.wait_msg_type("RESULTS")
         self.__results = results_msg.params['results']
-        
+
     def is_supported(self):
         '''
-        The executor should check if it supported
-        by the current system and return a boolean flag.
+        Check if this executor is supported on this system.
+        (to be implemented by executor subclass)
         '''
         raise NotImplementedError()
-    
+
     def prepare(self):
         '''
-        Prepare executor for running the test
+        Prepare executor for running the test. This function is
+        called just before run() for initialization.
+        (to be implemented by executor subclass)
         '''
         raise NotImplementedError()
-    
+
     def run(self):
         '''
-        Implemented by executor and involves all the testing
-        procedure. It is up to the executor to synchronize
-        and controll the running loop of the other-end executor.
+        Run the actual test procedure. It is up to the executor to synchronize
+        and control the running loop of the other-end executor.
+        (to be implemented by executor subclass)
         '''
         raise NotImplementedError()
-    
+
     def cleanup(self):
         '''
         Called when test is stopped or crashed. The executor
         should do any needed cleanup
+        (to be implemented by executor subclass)
         '''
         raise NotImplementedError()
-    
+
 
 class Profile(object):
     '''
-    A Profile describes a benchmark tool. It holds
-    information about options and results and scripts
-    that invoke the test.
+    A Profile describes a benchmark tool. It holds information about options
+    and results and scripts that invoke the test.
     '''
-    
+
     __registered_profiles = {}
-    
+
     def __init__(self, test_id, name, send_executor_class, receive_executor_class, description = None):
         if not issubclass(send_executor_class, ProfileExecutor) or \
             not issubclass(receive_executor_class, ProfileExecutor):

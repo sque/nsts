@@ -1,5 +1,6 @@
 '''
-Created on Nov 5, 2013
+Module for manipulating different type of units. It supports
+parsing and rendering to and from human readable representations.
 
 @license: GPLv3
 @author: NSTS Contributors (see AUTHORS.txt)
@@ -18,7 +19,8 @@ class UnknownMangitudeError(ParseError):
     '''
     def __init__(self, magnitude, unit):
         super(UnknownMangitudeError, self).__init__(
-                "Unknown magnitude '{0}' for unit '{1}'".format(magnitude, unit.name))
+                "Unknown magnitude '{0}' for unit '{1}'"
+                .format(magnitude, unit.name))
 
 class Unit(object):
     '''
@@ -95,8 +97,8 @@ class Unit(object):
 
     def optimal_scale(self):
         '''
-        It will return the magnitude that is
-        closer and above 1. The return value is a tuple
+        Calculate the magnitude that is closer and
+        above 1. The return value is a tuple
         containing the value and the magnitude.
         ''' 
         
