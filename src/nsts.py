@@ -100,44 +100,47 @@ elif args.server:
         print "Unknown error"
         print str(e)
 else:
-    terminal.welcome()
-    
-    # Client Mode
-    client = NSTSClient(remote_host = args.connect, remote_port = args.port, ipv6 = args.ipv6)
-    client.connect()
-
-    terminal.client_connected(client.connection)
-    
-    # Load a suite from command line or file
-    if args.tests is not None:
-        spsuite = suite.parse_command_line(args.tests)
-        spsuite.options['samples'] = args.samples
-        spsuite.options['interval'] = args.interval
-    elif args.suite is not None:
-        try:
-            spsuite = suite.load_file(args.suite)
-        except Exception, e:
-            print "Error loading suite file."
-            print str(e)
-            sys.exit(1)
-    else:
-        print "You need to define tests or load suite."
-        sys.exit(1)
-    
-    # Execute suite
     try:
+        terminal.welcome()
+        
+        # Client Mode
+        client = NSTSClient(remote_host = args.connect, remote_port = args.port, ipv6 = args.ipv6)
+        client.connect()
+    
+        terminal.client_connected(client.connection)
+        
+        # Load a suite from command line or file
+        if args.tests is not None:
+            spsuite = suite.parse_command_line(args.tests)
+            spsuite.options['samples'] = args.samples
+            spsuite.options['interval'] = args.interval
+        elif args.suite is not None:
+            try:
+                spsuite = suite.load_file(args.suite)
+            except Exception, e:
+                print "Error loading suite file."
+                print str(e)
+                sys.exit(1)
+        else:
+            print "You need to define tests or load suite."
+            sys.exit(1)
+        
+        # Execute suite
         client.run_suite(spsuite, terminal)
+
+        # Finish
+        terminal.epilog()
     except (SpeedTestRuntimeError, ProtocolError), e:
-        print "Error while executing speedtest suite."
+        print "Error while executing speedtest suite:"
         print str(e)
         sys.exit(-1)
     except KeyboardInterrupt:
-        pass
-    except BaseException, e:
-        print "Unknown error"
-        print str(e)
+        sys.exit(-1)
+    except KeyError, e:
+        print 'Unknown value {0}'.format(str(e))
         sys.exit(-2)
+    except BaseException, e:
+        print "Unknown error: ", str(e)
+        sys.exit(-3)
         
 
-    # Finish
-    terminal.epilog()
