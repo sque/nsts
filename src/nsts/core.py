@@ -5,6 +5,6 @@ Created on Nov 5, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 
-VERSION = [1,0,'beta2']
+VERSION = [1, 0, 'beta2']
 
 DEFAULT_PORT = 26532

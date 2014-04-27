@@ -4,17 +4,20 @@ Created on Nov 3, 2013
 @license: GPLv3
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
-import os, math
+import os
+import math
 try:
     import numpy as np
 except ImportError:
     pass
 
+
 def which(program):
     '''
-    @ref http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    @ref http://stackoverflow.com/questions/377017/
+        test-if-executable-exists-in-python
     '''
-    import os
+
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -43,6 +46,7 @@ def check_pid(pid):
     else:
         return True
 
+
 class InHouseUnitsStatisticsArray(object):
     '''
     Implementation of UnitsStatisticsArray using in house routines
@@ -51,54 +55,51 @@ class InHouseUnitsStatisticsArray(object):
         '''
         A basic function to calculate mean
         '''
-        
         values_sum = float(sum(array, float(0)))
-        return values_sum/float(len(array))
-    
-    
+        return values_sum / float(len(array))
+
     def __init__(self, array):
         self.unit_type = type(array[0])
         self.raw_array = [a.raw_value for a in array]
         self.__raw_mean = self.__calc_mean(self.raw_array)
         self.__raw_min = float(min(self.raw_array))
         self.__raw_max = float(max(self.raw_array))
-        # Root( Sum( Square(difference with mean))) 
+        # Root( Sum( Square(difference with mean)))
         self.__raw_std = math.sqrt(
-                    self.__calc_mean(
-                        [(a - self.__raw_mean)**2 for a in self.raw_array]))
+            self.__calc_mean(
+                [(a - self.__raw_mean) ** 2 for a in self.raw_array]))
 
     def max(self):
         return self.unit_type(self.__raw_max)
-    
+
     def min(self):
         return self.unit_type(self.__raw_min)
-    
+
     def mean(self):
         return self.unit_type(self.__raw_mean)
-    
+
     def std(self):
         return self.unit_type(self.__raw_std)
-
 
 if np is not None:
     class NumPyUnitsStatisticsArray(object):
         '''
         Implementation of UnitsStatisticsArray using numpy
         '''
-        
+
         def __init__(self, array):
             self.unit_type = type(array[0])
             self.array = np.array([a.raw_value for a in array])
-            
+
         def max(self):
             return self.unit_type(self.array.max())
-        
+
         def min(self):
             return self.unit_type(self.array.min())
-        
+
         def mean(self):
             return self.unit_type(self.array.mean())
-        
+
         def std(self):
             return self.unit_type(self.array.std())
     UnitsStatisticsArray = NumPyUnitsStatisticsArray

@@ -5,7 +5,10 @@ Created on Nov 2, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 
-import logging, datetime, hashlib, random
+import logging
+import datetime
+import hashlib
+import random
 from collections import OrderedDict
 from nsts.proto import NSTSConnection
 from nsts.units import Time, Unit
@@ -14,11 +17,13 @@ from nsts.options import OptionsDescriptor, Options
 # Module logger
 logger = logging.getLogger("test")
 
+
 class SpeedTestRuntimeError(RuntimeError):
     '''
     Exception to be raised by test when
     it was unable to execute it.
     '''
+
 
 class ResultValueDescriptor(object):
     '''
@@ -53,6 +58,7 @@ class ResultValueDescriptor(object):
         '''
         return self.__unit_type
 
+
 class ExecutionDirection(object):
     '''
     Encapsulates the logic of data direction in execution.
@@ -69,7 +75,8 @@ class ExecutionDirection(object):
         elif direction in ['receive', 'r']:
             self.__direction = 'receive'
         else:
-            raise ValueError("Direction '{0}' is not a valid direction.".format(direction))
+            raise ValueError("Direction '{0}' is not a valid direction."
+                             .format(direction))
 
     def is_send(self):
         '''
@@ -107,6 +114,7 @@ class ExecutionDirection(object):
     def __repr__(self):
         return self.__direction
 
+
 class ProfileExecutor(object):
     '''
     Base class for implementing a profile peer executor
@@ -117,7 +125,8 @@ class ProfileExecutor(object):
         @param context The execution context
         '''
         if not isinstance(context, ProfileExecution):
-            raise TypeError("{0} is not instance of ProfileExecution".format(context))
+            raise TypeError("{0} is not instance of ProfileExecution"
+                            .format(context))
 
         self.__execution_ctx = context
         self.logger = logging.getLogger("profile.{0}".format(self.profile.id))
@@ -147,29 +156,31 @@ class ProfileExecutor(object):
         '''
         return self.__execution_ctx
 
-    def send_msg(self, msg_type, msg_params = {}):
+    def send_msg(self, msg_type, msg_params={}):
         '''
         Wrapper for sending messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.context.connection.send_msg("__{0}_{1}"
-                .format(self.profile.id, msg_type), msg_params)
+        return self.context.connection.send_msg(
+            "__{0}_{1}".format(self.profile.id, msg_type),
+            msg_params)
 
     def wait_msg_type(self, expected_type):
         '''
         Wrapper for receiving messages in the way that protocol
         defines intra-test communication.
         '''
-        return self.context.connection.wait_msg_type("__{0}_{1}"
-                .format(self.profile.id, expected_type))
+        return self.context.connection.wait_msg_type(
+            "__{0}_{1}".format(self.profile.id, expected_type))
 
     def store_result(self, result_id, value):
         '''
         Store a result value in results container
         '''
-        if not self.__results.has_key(result_id):
-            raise ValueError("Cannot store results for unknown result id '{0}'"
-                    .format(result_id))
+        if result_id not in self.__results:
+            raise ValueError(
+                "Cannot store results for unknown result id '{0}'"
+                .format(result_id))
         self.__results[result_id] = self.profile.supported_results[result_id]\
             .unit_type(value)
 
@@ -177,7 +188,7 @@ class ProfileExecutor(object):
         '''
         Propagate results to the other executors
         '''
-        self.send_msg("RESULTS", {"results" : self.results})
+        self.send_msg("RESULTS", {"results": self.results})
 
     def collect_results(self):
         '''
@@ -227,10 +238,13 @@ class Profile(object):
 
     __registered_profiles = {}
 
-    def __init__(self, test_id, name, send_executor_class, receive_executor_class, description = None):
+    def __init__(self, test_id, name, send_executor_class,
+                 receive_executor_class, description=None):
         if not issubclass(send_executor_class, ProfileExecutor) or \
-            not issubclass(receive_executor_class, ProfileExecutor):
-            raise TypeError("executor_class must be subclass of ProfileExecutor")
+                not issubclass(receive_executor_class, ProfileExecutor):
+            raise TypeError(
+                "executor_class must be subclass "
+                "of ProfileExecutor")
         self.__test_id = test_id
         self.__name = name
         self.__send_executor_class = send_executor_class
@@ -238,43 +252,42 @@ class Profile(object):
         self.__supported_results = OrderedDict()
         self.__supported_options = OptionsDescriptor()
         self.__description = description
-        
+
         # Add profile instance in the global list
         self.__registered_profiles[self.id] = self
-    
+
     @staticmethod
     def get_all_profiles():
         return Profile.__registered_profiles
-    
-    
+
     @property
     def id(self):
         '''
         Get the id of Test
         '''
         return self.__test_id
-    
+
     @property
     def name(self):
         '''
         Get the name of the test
         '''
         return self.__name
-    
+
     @property
     def description(self):
         '''
         Get a description of the profile
         '''
         return self.__description
-    
+
     @property
     def send_executor_class(self):
         '''
         Type of the send executor
         '''
         return self.__send_executor_class
-    
+
     @property
     def receive_executor_class(self):
         '''
@@ -288,14 +301,14 @@ class Profile(object):
         Get a list with all supported results entries
         '''
         return self.__supported_results
-    
+
     @property
     def supported_options(self):
         '''
         Get a list with all supported options
         '''
         return self.__supported_options
-    
+
     def add_result(self, value_id, name, unit_type):
         '''
         Declare a supported result entry
@@ -303,113 +316,119 @@ class Profile(object):
         @param name A friendly name of this result value
         @param unit_type The type of this result value
         '''
-        self.__supported_results[value_id] = ResultValueDescriptor(value_id, name, unit_type)
+        self.__supported_results[value_id] = ResultValueDescriptor(
+            value_id, name, unit_type)
+
 
 class ProfileExecution(object):
     '''
     Execution context for a single speedtest profile
     '''
-    
-    def __init__(self, profile, direction, options, connection, execution_id = None):
+
+    def __init__(self, profile, direction,
+                 options, connection, execution_id=None):
         '''
         @param profile The Profile object to execute
         @param direction The direction of test execution
         @param execution_id If it is empty, a new one will be generated
         '''
         if not isinstance(profile, Profile):
-            raise TypeError("{0} is not an instance of Profile".format(profile))
+            raise TypeError("{0} is not an instance of Profile"
+                            .format(profile))
         if not isinstance(direction, ExecutionDirection):
-            raise TypeError("{0} is not an instance of ExecutionDirection".format(direction))
+            raise TypeError("{0} is not an instance of ExecutionDirection"
+                            .format(direction))
         if not isinstance(options, Options):
-            raise TypeError("{0} is not an instance of Options".format(options))
+            raise TypeError("{0} is not an instance of Options"
+                            .format(options))
         if not isinstance(connection, NSTSConnection):
-            raise TypeError("{0} is not an instance of NSTSConnection".format(connection))
-        
+            raise TypeError("{0} is not an instance of NSTSConnection"
+                            .format(connection))
+
         self.__profile = profile
         self.__direction = direction
         self.__options = options
         self.__connection = connection
-        
+
         self.started_at = datetime.datetime.utcnow()
         self.ended_at = None
-        
+
         # Generate execution id
         if execution_id is None:
             sha1 = hashlib.sha1()
-            sha1.update(profile.id + str(self.started_at) + str(random.random()))
+            sha1.update(profile.id + str(self.started_at)
+                        + str(random.random()))
             self.__execution_id = sha1.hexdigest()
         else:
             self.__execution_id = execution_id
-        
+
         # Create executor
         if self.direction.is_send():
             self.__executor = self.profile.send_executor_class(self)
         else:
             self.__executor = self.profile.receive_executor_class(self)
 
-    
     @property
     def id(self):
         '''
         Get the execution id of speedtest
         '''
         return self.__execution_id
-    
+
     @property
     def options(self):
         '''
         Get options for the executor
         '''
         return self.__options
-    
+
     @property
     def profile(self):
         '''
         Get profile that was used for this execution
         '''
         return self.__profile
-    
+
     @property
     def direction(self):
         '''
         Get direction that test was executed
         '''
         return self.__direction
-    
+
     @property
     def connection(self):
         '''
         Get connection object
         '''
         return self.__connection
-    
+
     @property
     def name(self):
         '''
         Get name of this execution
         '''
         return "{0} - {1}".format(self.profile.name, str(self.direction))
-    
+
     @property
     def executor(self):
         '''
         Get executor of this context
         '''
         return self.__executor
-    
+
     @property
     def results(self):
         '''
         Get results of this execution
         '''
         return self.executor.results
-    
+
     def mark_finished(self):
         '''
         Fill end timestamp and save results values in the object
         '''
         self.ended_at = datetime.datetime.utcnow()
-    
+
     def execution_time(self):
         return Time((self.ended_at - self.started_at).total_seconds())
-

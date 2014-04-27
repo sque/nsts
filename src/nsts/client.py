@@ -5,32 +5,42 @@ Created on Nov 4, 2013
 @author: NSTS Contributors (see AUTHORS.txt)
 '''
 
-import socket, sys, logging, time
+import socket
+import sys
+import logging
+import time
 from proto import NSTSConnection, ProtocolError
 from nsts.profiles import base
 from nsts.speedtest import SpeedTest, SpeedTestSuite
 from nsts.profiles.base import ProfileExecution
 from nsts import core
+from nsts.events import dispatcher
 
 logger = logging.getLogger("proto")
 
+
 class NotConnectedError(ProtocolError):
-    pass
+
     def __init__(self):
-        super(NotConnectedError, self).__init__("Cannot perform action. Client is not connected.")
-        
+        super(NotConnectedError, self).__init__(
+            "Cannot perform action. Client is not connected.")
+
+
 class NSTSClient(object):
     '''
     NSTS client implementation that permits connecting
     to a server and executing suites, tests or profiles
     '''
-    
-    def __init__(self, remote_host , remote_port = None, ipv6 = False):
+
+    def __init__(self, remote_host, remote_port=None, ipv6=False):
         self.remote_host = remote_host
-        self.remote_port = core.DEFAULT_PORT if remote_port is None else remote_port
+        if remote_port is None:
+            self.remote_port = core.DEFAULT_PORT
+        else:
+            self.remote_port = remote_port
         self.connection = None
         self.ipv6 = ipv6
-        
+
     def connect(self):
         '''
         Perform actual connection to the server
@@ -39,93 +49,99 @@ class NSTSClient(object):
             self.socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         else:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            
+
         try:
             self.socket.connect((self.remote_host, self.remote_port))
-        except socket.error , msg:
-            error_msg = 'Connection failed. Error code: ' + str(msg[0]) + 'Error message: ' + msg[1]
+        except socket.error, msg:
+            error_msg = 'Connection failed. Error code: '\
+                + str(msg[0]) + 'Error message: ' + msg[1]
             print error_msg
             logger.critical(error_msg)
             sys.exit()
-        logger.info("Established connection to {0}:{1}.".format(self.remote_host, self.remote_port))
+        logger.info("Established connection to {0}:{1}.".format(
+            self.remote_host, self.remote_port))
 
         remote_ip = self.socket.getpeername()[0]
         self.connection = NSTSConnection(self.socket)
         self.connection.handshake(remote_ip)
-    
+
     def is_connected(self):
         '''
         Check if client is connected
         '''
         return self.connection is not None
-    
+
     def check_profile(self, profile_id):
         '''
         Request other side to assure that a profile is available
         '''
         if not self.is_connected():
             raise NotConnectedError()
-            
-        self.connection.send_msg("CHECKPROFILE", {"profile_id" :profile_id})
+
+        self.connection.send_msg("CHECKPROFILE", {"profile_id": profile_id})
         profile_info = self.connection.wait_msg_type("PROFILEINFO")
         assert profile_info.params["profile_id"] == profile_id
-        if not (profile_info.params["installed"] and profile_info.params["supported"]):
-            raise ProtocolError("Profile {0} is not supported remotely".format(profile_info.params['error']))
-        
+        if not (profile_info.params["installed"] and
+                profile_info.params["supported"]):
+            raise ProtocolError("Profile {0} is not supported remotely"
+                                .format(profile_info.params['error']))
+
     def run_profile(self, ctx, terminal):
         '''
         Run a profile and return results
         '''
         if not self.is_connected():
             raise NotConnectedError()
-        
+
         terminal.profile_execution_started(ctx)
         logger.info("Starting execute profile '{0}'".format(ctx.name))
-        
+
         assert isinstance(ctx, base.ProfileExecution)
-        
+
         try:
             executor = ctx.executor
-            
+
             # Check support (remote and local
             logger.debug("Checking profile '{0}'".format(ctx.name))
-            
+
             if not executor.is_supported():
-                logger.warning("Profile '{0}' is not supported locally.".format(executor.name))
-                raise ProtocolError("Profile {0} is not supported locally".format(ctx.name))
+                logger.warning("Profile '{0}' is not supported locally."
+                               .format(executor.name))
+                raise ProtocolError("Profile {0} is not supported locally"
+                                    .format(ctx.name))
             self.check_profile(ctx.profile.id)
 
             # Instantiate profile remotely
-            logger.debug("Request remote to instantiate profile '{0}'.".format(ctx.name))
+            logger.debug("Request remote to instantiate profile '{0}'."
+                         .format(ctx.name))
             self.connection.send_msg("INSTANTIATEPROFILE", {
-                        "profile_id" : ctx.profile.id,
-                        "direction" : str(ctx.direction.opposite()),
-                        "options" : ctx.options,
-                        'execution_id' : ctx.id
-                        })
+                "profile_id": ctx.profile.id,
+                "direction": str(ctx.direction.opposite()),
+                "options": ctx.options,
+                'execution_id': ctx.id})
             self.connection.wait_msg_type("OK")
             executor.prepare()
-            
+
             # Execute profile
             logger.debug("Profile execution '{0} started'.".format(ctx.name))
             executor.run()
-                
+
             # Stop execution
             logger.debug("Profile '{0}' finished.".format(ctx.name))
-            ctx.connection.send_msg("EXECUTIONFINISHED", {"execution_id": ctx.id})
+            ctx.connection.send_msg("EXECUTIONFINISHED",
+                                    {"execution_id": ctx.id})
             ctx.connection.wait_msg_type("EXECUTIONFINISHED")
-            
+
             ctx.mark_finished()
         except BaseException, e:
             logger.critical("Unhandled exception: " + str(type(e)) + str(e))
             executor.cleanup()
             raise
-        
-        #Clean up
+
+        # Clean up
         executor.cleanup()
         terminal.profile_execution_finished(ctx)
-    
-    
+
     def run_test(self, test, samples, interval, terminal):
         '''
         Run a test as described by SpeedTest object.
@@ -137,32 +153,30 @@ class NSTSClient(object):
         @param terminal The terminal to output progress
         '''
         assert isinstance(test, SpeedTest)
-        
         terminal.test_execution_started(test)
-        
+
         if test.options['samples'] is not None:
             samples = test.options['samples']
         if test.options['interval'] is not None:
             interval = test.options['interval']
-        
+
         # Run profile multiple times and save results
         for i in range(0, samples):
-            
             # Create execution
             ctx = ProfileExecution(
-                profile = test.profile,
-                direction = test.direction,
-                connection = self.connection,
-                options = test.profile_options)
-            
+                profile=test.profile,
+                direction=test.direction,
+                connection=self.connection,
+                options=test.profile_options)
+
             self.run_profile(ctx, terminal)
             test.push_sample(ctx)
-            
+
             # Wait if interval is set and it is not last
-            if i < samples -1 and interval.scale('sec') is not None:
+            if i < (samples - 1) and interval.scale('sec') is not None:
                 time.sleep(interval.scale('sec'))
         terminal.test_execution_finished(test)
-    
+
     def run_suite(self, suite, terminal):
         '''
         Run a SpeedTestSuite
@@ -171,7 +185,8 @@ class NSTSClient(object):
         '''
         assert isinstance(suite, SpeedTestSuite)
         terminal.suite_execution_started(suite)
-        
+
         for test in suite.tests:
-            self.run_test(test, suite.options['samples'], suite.options['interval'], terminal)
+            self.run_test(test, suite.options['samples'],
+                          suite.options['interval'], terminal)
         terminal.suite_execution_finished(suite)
