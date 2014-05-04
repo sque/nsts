@@ -128,16 +128,25 @@ class BasicTerminal(ClientTerminal):
         print ""
 
     def client_connected(self, connection):
-        if self.options['numerical_addr']:
-            local = connection.socket.getsockname()
-            remote = connection.socket.getpeername()
-        else:
-            local = [socket.gethostbyaddr(
-                connection.socket.getsockname()[0])[0],
-                connection.socket.getsockname()[1]]
-            remote = [socket.gethostbyaddr(
-                connection.socket.getpeername()[0])[0],
-                connection.socket.getpeername()[1]]
+        
+        local = connection.socket.getsockname()
+        remote = connection.socket.getpeername()
+        
+        if not self.options['numerical_addr']:
+            # Try to resolve domain names
+            try:
+                local = [socket.gethostbyaddr(
+                    connection.socket.getsockname()[0])[0],
+                    connection.socket.getsockname()[1]]
+            except socket.herror:
+                pass
+            
+            try:
+                remote = [socket.gethostbyaddr(
+                    connection.socket.getpeername()[0])[0],
+                    connection.socket.getpeername()[1]]
+            except socket.herror:
+                pass
         print "Started at        : {0}".format(datetime.datetime.now())
         print "Client <=> Server : {l[0]}:{l[1]} <=> {r[0]}:{r[1]} ".format(
             l=local, r=remote)
