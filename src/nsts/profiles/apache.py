@@ -211,8 +211,9 @@ class WgetExecutorClient(SubProcessExecutorBase):
 
                 # Ensure that the achieved speed was 10 times
                 # smaller than file size or reached max file size
+                maxfilesize = self.context.options['maxfilesize'].raw_value
                 downloadtime = self.context.options['downloadtime'].raw_value
-                if filesize >= downloadtime or\
+                if filesize >= maxfilesize or\
                         speed.raw_value < (filesize / downloadtime):
                     break
                 self.logger.debug("Downloaded {0} bytes with {1} speed".format(

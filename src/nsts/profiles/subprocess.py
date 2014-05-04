@@ -39,7 +39,7 @@ class SubProcessExecutorBase(ProfileExecutor):
         proc_args = [self.subprocess_executable]
         proc_args.extend(args)
         self.logger.debug("Starting subprocess - {0}.".format(proc_args))
-        self.subprocess_handle = proc.Popen(args, stdout=proc.PIPE,
+        self.subprocess_handle = proc.Popen(proc_args, stdout=proc.PIPE,
                                             stderr=proc.STDOUT, close_fds=True)
 
     def is_supported(self):
