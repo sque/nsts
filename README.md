@@ -111,30 +111,30 @@ interval = 1 sec
 samples = 10
 
 [short_tcp]
-profile=iperf_tcp
+profile = iperf_tcp
 name = Fast connections
 samples = 30
 interval = 0
-iperf_tcp.min_time = 1 sec
+iperf_tcp.time = 1 sec
 
 [long_tcp]
-profile=iperf_tcp
+profile = iperf_tcp
 name = Long last connections 
 samples = 5
 interval = 20 sec
-iperf_tcp.min_time = 20 sec
+iperf_tcp.time = 20 sec
 
 [low_rate_latency]
 name = Low Rate latency jittering
-profile=iperf_jitter
+profile = iperf_jitter
 samples = 6
 interval = 0
 iperf_jitter.time = 10
 iperf_jitter.rate = 1 Mbps
 
 [fast_rate_latency]
-name = Low Rate latency jittering
-profile=iperf_jitter
+name = Fast Rate latency jittering
+profile = iperf_jitter
 samples = 6
 interval = 0
 iperf_jitter.time = 10
@@ -142,7 +142,7 @@ iperf_jitter.rate = 10 Mbps
 
 [estimate_latency]
 name = Latency estimations
-profile=ping
+profile = ping
 
 ```
 * **interval**      : Is the time between samples. You can define it globaly and overide its value per test.
