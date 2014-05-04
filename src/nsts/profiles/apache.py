@@ -23,8 +23,7 @@ class ApacheExecutorServer(SubProcessExecutorBase):
             "HostnameLookups Off",
             "KeepAlive On",
             "MaxKeepAliveRequests 100",
-            "KeepAliveTimeout 5"
-            ]
+            "KeepAliveTimeout 5"]
         self.execution_id = None
         self.apache_running = False
 

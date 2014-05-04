@@ -86,8 +86,7 @@ args = parser.parse_args()
 # Initialize Logging
 log_params = {
     'level': logging.INFO if args.log_file else logging.WARNING,
-    'format': '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'
-    }
+    'format': '%(asctime)s %(levelname)-8s %(name)-15s %(message)s'}
 if args.log_file:
     log_params['filename'] = args.log_file
 if args.debug is not None:
